@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Upload, Send, Pin, Image, Clock } from 'lucide-react';
+import { MessageSquare, Upload, Send, Pin, Image, Clock, User } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CommunityPost {
@@ -35,10 +36,11 @@ interface CommunityReply {
 
 export function CommunitySection() {
   const { user } = useAuth();
-  const { profile } = useProfile();
+  const { profile, refetch: refetchProfile } = useProfile();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [requesting, setRequesting] = useState(false);
   const [newPost, setNewPost] = useState({
     title: '',
     content: '',
@@ -48,6 +50,8 @@ export function CommunitySection() {
   useEffect(() => {
     if (profile?.status === 'approved') {
       fetchPosts();
+    } else {
+      setLoading(false);
     }
   }, [profile]);
 
@@ -144,22 +148,11 @@ export function CommunitySection() {
     }
   };
 
-  const getPostTypeBadge = (type: string) => {
-    switch (type) {
-      case 'announcement':
-        return <Badge className="bg-purple-500/20 text-purple-400">Announcement</Badge>;
-      case 'chart':
-        return <Badge className="bg-blue-500/20 text-blue-400">Chart</Badge>;
-      default:
-        return <Badge className="bg-green-500/20 text-green-400">Discussion</Badge>;
-    }
-  };
-
   const handleApprovalRequest = async () => {
     if (!user) return;
 
+    setRequesting(true);
     try {
-      // Update user status to request approval
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -170,10 +163,24 @@ export function CommunitySection() {
 
       if (error) throw error;
 
-      toast.success('Approval request sent! Please wait for admin approval.');
+      await refetchProfile();
+      toast.success('Community access request sent! Please wait for admin approval.');
     } catch (error) {
       console.error('Error requesting approval:', error);
       toast.error('Failed to send approval request');
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  const getPostTypeBadge = (type: string) => {
+    switch (type) {
+      case 'announcement':
+        return <Badge className="bg-purple-500/20 text-purple-400">Announcement</Badge>;
+      case 'chart':
+        return <Badge className="bg-blue-500/20 text-blue-400">Chart</Badge>;
+      default:
+        return <Badge className="bg-green-500/20 text-green-400">Discussion</Badge>;
     }
   };
 
@@ -204,18 +211,32 @@ export function CommunitySection() {
       <Card className="glass-effect border-white/20">
         <CardContent className="text-center py-8">
           <MessageSquare className="w-12 h-12 text-text-secondary mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Community Access Required</h3>
+          <h3 className="text-lg font-semibold mb-2">Community Group Access</h3>
           <p className="text-text-secondary mb-6">
-            You need admin approval to access the community features. Click below to request access.
+            Join our trading community! Share charts, ask questions, and discuss strategies with other traders.
           </p>
           {profile.status === 'pending' ? (
             <div className="flex items-center justify-center gap-2 text-yellow-400">
               <Clock className="w-5 h-5" />
-              <span>Approval request pending...</span>
+              <span>Your approval request is pending. Please wait for admin approval.</span>
             </div>
           ) : (
-            <Button onClick={handleApprovalRequest} className="gradient-gold text-dark-bg">
-              Request Community Access
+            <Button 
+              onClick={handleApprovalRequest} 
+              className="gradient-gold text-dark-bg"
+              disabled={requesting}
+            >
+              {requesting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-dark-bg mr-2"></div>
+                  Requesting...
+                </>
+              ) : (
+                <>
+                  <User className="w-4 h-4 mr-2" />
+                  Request Community Access
+                </>
+              )}
             </Button>
           )}
         </CardContent>
@@ -284,7 +305,7 @@ export function CommunitySection() {
               />
               
               <Textarea
-                placeholder="What's on your mind? Share your trading insights..."
+                placeholder="What's on your mind? Share your trading insights, ask questions, or upload charts..."
                 value={newPost.content}
                 onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
                 className="bg-white/5 border-white/20 min-h-[100px]"
