@@ -46,25 +46,8 @@ serve(async (req) => {
       )
     }
 
-    // Check if user is admin
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('profiles')
-      .select('email')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError) {
-      console.log('Profile fetch error:', profileError)
-      return new Response(
-        JSON.stringify({ error: 'Profile not found' }),
-        { 
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    const isAdmin = profile?.email === 'admin@swingscribe.com' || profile?.email === 'adityabarod807@gmail.com'
+    // Check if user is admin by email
+    const isAdmin = user.email === 'admin@swingscribe.com' || user.email === 'adityabarod807@gmail.com'
     
     if (!isAdmin) {
       return new Response(

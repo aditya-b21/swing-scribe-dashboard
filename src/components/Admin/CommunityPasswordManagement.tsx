@@ -37,11 +37,22 @@ export function CommunityPasswordManagement() {
       setAuthError(false);
       console.log('Fetching current password...');
       
-      const { data, error } = await supabase.functions.invoke('get-community-password');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setAuthError(true);
+        toast.error('Please log in to access admin features');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('get-community-password', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
       
       if (error) {
         console.error('Password fetch error:', error);
-        if (error.message?.includes('Unauthorized') || error.message?.includes('Admin access required')) {
+        if (error.message?.includes('Admin access required')) {
           setAuthError(true);
           toast.error('Admin access required. Please ensure you are logged in as an admin.');
         } else {
@@ -66,11 +77,21 @@ export function CommunityPasswordManagement() {
       setLogsLoading(true);
       console.log('Fetching access logs...');
       
-      const { data, error } = await supabase.functions.invoke('get-community-access-logs');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setAccessLogs([]);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('get-community-access-logs', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
       
       if (error) {
         console.error('Access logs fetch error:', error);
-        if (!error.message?.includes('Unauthorized')) {
+        if (!error.message?.includes('Admin access required')) {
           toast.error('Failed to fetch access logs: ' + error.message);
         }
         setAccessLogs([]);
@@ -102,13 +123,23 @@ export function CommunityPasswordManagement() {
     try {
       console.log('Updating password...');
       
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setAuthError(true);
+        toast.error('Please log in to update password');
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('update-community-password', {
-        body: { password: newPassword }
+        body: { password: newPassword },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) {
         console.error('Password update error:', error);
-        if (error.message?.includes('Unauthorized') || error.message?.includes('Admin access required')) {
+        if (error.message?.includes('Admin access required')) {
           setAuthError(true);
           toast.error('Admin access required. Please ensure you are logged in as an admin.');
         } else {
