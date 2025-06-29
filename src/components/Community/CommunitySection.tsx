@@ -77,7 +77,26 @@ export function CommunitySection() {
       }
 
       console.log('Fetched community posts:', data);
-      setPosts(data || []);
+      
+      // Type cast the data to ensure proper typing
+      const typedPosts: CommunityPost[] = (data || []).map(post => ({
+        id: post.id,
+        title: post.title || '',
+        content: post.content || '',
+        post_type: (post.post_type || 'discussion') as 'discussion' | 'analysis' | 'question',
+        created_at: post.created_at || new Date().toISOString(),
+        user_id: post.user_id || '',
+        image_url: post.image_url || undefined,
+        replies: (post.replies || []).map((reply: any) => ({
+          id: reply.id,
+          content: reply.content,
+          created_at: reply.created_at,
+          user_id: reply.user_id,
+          post_id: reply.post_id
+        }))
+      }));
+
+      setPosts(typedPosts);
     } catch (error) {
       console.error('Error fetching community posts:', error);
     } finally {
