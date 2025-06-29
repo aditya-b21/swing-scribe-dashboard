@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,13 +43,17 @@ export function CommunityManagement() {
         .select('id, email')
         .in('id', userIds);
 
-      // Combine posts with user profile data
+      // Combine posts with user profile data and type cast
       const postsWithUserInfo = postsData?.map(post => ({
         ...post,
+        post_type: (post.post_type || 'discussion') as 'discussion' | 'chart' | 'announcement',
+        is_pinned: post.is_pinned || false,
+        created_at: post.created_at || new Date().toISOString(),
+        updated_at: post.updated_at || new Date().toISOString(),
         user_email: profilesData?.find(profile => profile.id === post.user_id)?.email
       })) || [];
 
-      setPosts(postsWithUserInfo);
+      setPosts(postsWithUserInfo as CommunityPost[]);
     } catch (error) {
       console.error('Error fetching posts:', error);
       toast.error('Failed to fetch community posts');

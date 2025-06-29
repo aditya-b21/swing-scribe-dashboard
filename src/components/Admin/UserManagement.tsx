@@ -36,7 +36,18 @@ export function UserManagement() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setUsers(data || []);
+      
+      // Type cast the data to ensure proper typing
+      const typedUsers = data?.map(user => ({
+        ...user,
+        status: (user.status || 'pending') as 'pending' | 'approved' | 'rejected',
+        email_verified: user.email_verified || false,
+        admin_approved: user.admin_approved || false,
+        created_at: user.created_at || new Date().toISOString(),
+        updated_at: user.updated_at || new Date().toISOString()
+      })) || [];
+      
+      setUsers(typedUsers as Profile[]);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to fetch users');

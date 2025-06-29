@@ -43,7 +43,17 @@ export function useProfile() {
         return;
       }
 
-      setProfile(data);
+      // Type cast the data to ensure proper typing
+      const typedProfile = {
+        ...data,
+        status: (data.status || 'pending') as 'pending' | 'approved' | 'rejected',
+        email_verified: data.email_verified || false,
+        admin_approved: data.admin_approved || false,
+        created_at: data.created_at || new Date().toISOString(),
+        updated_at: data.updated_at || new Date().toISOString()
+      };
+
+      setProfile(typedProfile as Profile);
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
