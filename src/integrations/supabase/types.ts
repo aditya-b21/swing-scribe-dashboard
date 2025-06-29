@@ -110,6 +110,7 @@ export type Database = {
       profiles: {
         Row: {
           admin_approved: boolean | null
+          community_request_status: string | null
           created_at: string | null
           email: string
           email_verified: boolean | null
@@ -120,6 +121,7 @@ export type Database = {
         }
         Insert: {
           admin_approved?: boolean | null
+          community_request_status?: string | null
           created_at?: string | null
           email: string
           email_verified?: boolean | null
@@ -130,6 +132,7 @@ export type Database = {
         }
         Update: {
           admin_approved?: boolean | null
+          community_request_status?: string | null
           created_at?: string | null
           email?: string
           email_verified?: boolean | null

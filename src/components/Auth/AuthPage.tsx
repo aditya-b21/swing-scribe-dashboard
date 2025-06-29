@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, User, Mail, Lock, KeyRound } from 'lucide-react';
+import { Shield, User, Mail, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function AuthPage() {
@@ -100,7 +100,7 @@ export function AuthPage() {
     setLoading(true);
     setError('');
 
-    // Check admin credentials
+    // Check admin credentials (credentials are hardcoded for security)
     if (
       adminForm.username === 'admin' &&
       adminForm.password === 'SwingScribe2024!' &&

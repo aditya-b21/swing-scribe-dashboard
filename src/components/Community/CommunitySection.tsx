@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,7 +35,7 @@ export function CommunitySection() {
   const { profile, loading: profileLoading } = useProfile();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newPost, setNewPost] = useState({ title: '', content: '', post_type: 'discussion' });
+  const [newPost, setNewPost] = useState({ title: '', content: '', post_type: 'discussion' as 'discussion' | 'analysis' | 'question' });
   const [newReply, setNewReply] = useState<{ [key: string]: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const [requestingAccess, setRequestingAccess] = useState(false);
@@ -76,7 +77,19 @@ export function CommunitySection() {
       }
 
       console.log('Fetched community posts:', data);
-      setPosts(data || []);
+      
+      // Type cast the posts to ensure proper typing
+      const typedPosts = data?.map(post => ({
+        ...post,
+        post_type: (post.post_type || 'discussion') as 'discussion' | 'analysis' | 'question',
+        title: post.title || '',
+        content: post.content || '',
+        created_at: post.created_at || new Date().toISOString(),
+        user_id: post.user_id || '',
+        replies: post.replies || []
+      })) || [];
+      
+      setPosts(typedPosts as CommunityPost[]);
     } catch (error) {
       console.error('Error fetching community posts:', error);
       toast.error('Failed to fetch community posts');
@@ -299,7 +312,7 @@ export function CommunitySection() {
             </div>
             
             <div className="flex justify-between items-center">
-              <Select value={newPost.post_type} onValueChange={(value) => setNewPost(prev => ({ ...prev, post_type: value }))}>
+              <Select value={newPost.post_type} onValueChange={(value: 'discussion' | 'analysis' | 'question') => setNewPost(prev => ({ ...prev, post_type: value }))}>
                 <SelectTrigger className="w-48 bg-white/5 border-white/20">
                   <SelectValue />
                 </SelectTrigger>

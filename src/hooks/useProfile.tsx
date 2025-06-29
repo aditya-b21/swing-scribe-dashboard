@@ -10,6 +10,7 @@ interface Profile {
   email_verified: boolean;
   admin_approved: boolean;
   status: 'pending' | 'approved' | 'rejected';
+  community_request_status?: 'pending' | 'approved' | 'denied' | null;
   created_at: string;
   updated_at: string;
 }
@@ -70,7 +71,8 @@ export function useProfile() {
             .insert({
               id: user.id,
               email: user.email || '',
-              status: 'pending'
+              status: 'pending',
+              community_request_status: null
             })
             .select()
             .single();
@@ -83,6 +85,7 @@ export function useProfile() {
           const typedProfile = {
             ...newProfile,
             status: (newProfile.status || 'pending') as 'pending' | 'approved' | 'rejected',
+            community_request_status: newProfile.community_request_status as 'pending' | 'approved' | 'denied' | null,
             email_verified: newProfile.email_verified || false,
             admin_approved: newProfile.admin_approved || false,
             created_at: newProfile.created_at || new Date().toISOString(),
@@ -100,6 +103,7 @@ export function useProfile() {
         const typedProfile = {
           ...data,
           status: (data.status || 'pending') as 'pending' | 'approved' | 'rejected',
+          community_request_status: data.community_request_status as 'pending' | 'approved' | 'denied' | null,
           email_verified: data.email_verified || false,
           admin_approved: data.admin_approved || false,
           created_at: data.created_at || new Date().toISOString(),

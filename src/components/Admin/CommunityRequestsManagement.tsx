@@ -15,7 +15,7 @@ interface CommunityRequest {
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   updated_at: string;
-  community_request_status?: 'pending' | 'approved' | 'denied';
+  community_request_status?: 'pending' | 'approved' | 'denied' | null;
 }
 
 export function CommunityRequestsManagement() {
@@ -65,7 +65,7 @@ export function CommunityRequestsManagement() {
       const typedRequests = data?.map(request => ({
         ...request,
         status: (request.status || 'pending') as 'pending' | 'approved' | 'rejected',
-        community_request_status: (request.community_request_status || 'pending') as 'pending' | 'approved' | 'denied',
+        community_request_status: request.community_request_status as 'pending' | 'approved' | 'denied' | null,
         created_at: request.created_at || new Date().toISOString(),
         updated_at: request.updated_at || new Date().toISOString()
       })) || [];
@@ -129,7 +129,7 @@ export function CommunityRequestsManagement() {
     return true;
   });
 
-  const getCommunityStatusBadge = (status: string) => {
+  const getCommunityStatusBadge = (status?: string | null) => {
     switch (status) {
       case 'approved':
         return (
@@ -242,7 +242,7 @@ export function CommunityRequestsManagement() {
                     <h3 className="font-semibold text-white">
                       {request.full_name || request.email}
                     </h3>
-                    {getCommunityStatusBadge(request.community_request_status || 'pending')}
+                    {getCommunityStatusBadge(request.community_request_status)}
                   </div>
                   <p className="text-sm text-text-secondary mb-1">{request.email}</p>
                   <div className="flex gap-4 text-xs text-text-secondary">
