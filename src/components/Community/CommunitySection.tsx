@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -164,21 +163,37 @@ export function CommunitySection() {
       // Get unique user IDs from posts
       const userIds = [...new Set(postsData?.map(post => post.user_id).filter(Boolean))];
       
-      // Fetch profiles for these users
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, email, full_name')
-        .in('id', userIds);
+      let postsWithUserInfo = postsData || [];
+      
+      // Fetch profiles for these users if we have user IDs
+      if (userIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, email, full_name')
+          .in('id', userIds);
 
-      // Combine posts with user profile data
-      const postsWithUserInfo = postsData?.map(post => {
-        const profile = profilesData?.find(p => p.id === post.user_id);
-        return {
+        if (profilesError) {
+          console.error('Profiles fetch error:', profilesError);
+          // Continue without profile data if there's an error
+        }
+
+        // Combine posts with user profile data
+        postsWithUserInfo = postsData?.map(post => {
+          const profile = profilesData?.find(p => p.id === post.user_id);
+          return {
+            ...post,
+            user_email: profile?.email || 'Unknown User',
+            user_full_name: profile?.full_name || profile?.email || 'Unknown User'
+          };
+        }) || [];
+      } else {
+        // No users found, just use the posts as-is with default user info
+        postsWithUserInfo = postsData?.map(post => ({
           ...post,
-          user_email: profile?.email || 'Unknown User',
-          user_full_name: profile?.full_name || profile?.email || 'Unknown User'
-        };
-      }) || [];
+          user_email: 'Unknown User',
+          user_full_name: 'Unknown User'
+        })) || [];
+      }
 
       setPosts(postsWithUserInfo);
     } catch (error) {
