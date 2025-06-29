@@ -71,16 +71,21 @@ export function CommunitySection() {
         body: { password }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Verification error:', error);
+        throw error;
+      }
 
       if (data?.valid) {
         // Log access
-        await supabase.functions.invoke('log-community-access', {
-          body: { 
-            user_email: user?.email,
-            user_id: user?.id 
-          }
-        });
+        if (user) {
+          await supabase.functions.invoke('log-community-access', {
+            body: { 
+              user_email: user.email,
+              user_id: user.id 
+            }
+          });
+        }
 
         setHasAccess(true);
         sessionStorage.setItem('community_access', 'granted');
@@ -91,6 +96,7 @@ export function CommunitySection() {
       return false;
     } catch (error) {
       console.error('Error verifying password:', error);
+      toast.error('Failed to verify password. Please try again.');
       return false;
     }
   };
@@ -170,29 +176,29 @@ export function CommunitySection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-gold"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-400"></div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Card className="glass-effect shine-animation">
+      <Card className="glass-effect shine-animation border-slate-700">
         <CardHeader>
           <CardTitle className="text-2xl text-gradient flex items-center gap-2">
             <Users className="w-6 h-6" />
             Premium Trading Community
           </CardTitle>
-          <CardDescription className="text-text-secondary">
+          <CardDescription className="text-slate-400">
             Connect with fellow traders, share insights, and discuss market strategies
           </CardDescription>
         </CardHeader>
       </Card>
 
       {/* Create New Post */}
-      <Card className="glass-effect">
+      <Card className="glass-effect border-slate-700">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-accent-gold">
+          <CardTitle className="flex items-center gap-2 text-slate-300">
             <MessageSquare className="w-5 h-5" />
             Share Your Insights
           </CardTitle>
@@ -202,19 +208,19 @@ export function CommunitySection() {
             placeholder="Post title..."
             value={newPost.title}
             onChange={(e) => setNewPost(prev => ({ ...prev, title: e.target.value }))}
-            className="bg-card-bg border-gold/20 focus:border-accent-gold text-white"
+            className="bg-slate-800 border-slate-600 focus:border-slate-400 text-white"
           />
           <Textarea
             placeholder="Share your trading insights, analysis, or questions..."
             value={newPost.content}
             onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
-            className="bg-card-bg border-gold/20 focus:border-accent-gold min-h-[100px] text-white"
+            className="bg-slate-800 border-slate-600 focus:border-slate-400 min-h-[100px] text-white"
           />
           <div className="flex justify-between items-center">
             <select
               value={newPost.post_type}
               onChange={(e) => setNewPost(prev => ({ ...prev, post_type: e.target.value }))}
-              className="bg-card-bg border border-gold/20 rounded px-3 py-2 text-sm focus:border-accent-gold text-white"
+              className="bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm focus:border-slate-400 text-white"
             >
               <option value="discussion">Discussion</option>
               <option value="analysis">Market Analysis</option>
@@ -225,14 +231,14 @@ export function CommunitySection() {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                className="border-gold/20 hover:bg-card-bg text-accent-gold btn-animated"
+                className="border-slate-600 hover:bg-slate-800 text-slate-300 btn-animated"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 Upload Chart
               </Button>
               <Button
                 onClick={createPost}
-                className="gradient-gold font-semibold btn-animated golden-glow"
+                className="gradient-slate font-semibold btn-animated btn-glow"
               >
                 <Send className="w-4 h-4 mr-2" />
                 Post
@@ -245,27 +251,27 @@ export function CommunitySection() {
       {/* Community Posts */}
       <div className="space-y-4">
         {posts.length === 0 ? (
-          <Card className="glass-effect">
+          <Card className="glass-effect border-slate-700">
             <CardContent className="text-center py-8">
-              <MessageSquare className="w-12 h-12 text-accent-gold/50 mx-auto mb-4" />
-              <p className="text-text-secondary">No posts yet. Be the first to start a discussion!</p>
+              <MessageSquare className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+              <p className="text-slate-400">No posts yet. Be the first to start a discussion!</p>
             </CardContent>
           </Card>
         ) : (
           posts.map((post) => (
-            <Card key={post.id} className="glass-effect hover:bg-card-bg/50 transition-colors card-hover">
+            <Card key={post.id} className="glass-effect hover:bg-slate-800/50 transition-colors card-hover border-slate-700">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      {post.is_pinned && <Pin className="w-4 h-4 text-accent-gold" />}
+                      {post.is_pinned && <Pin className="w-4 h-4 text-slate-300" />}
                       <h3 className="font-semibold text-white">{post.title}</h3>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-text-secondary">
+                    <div className="flex items-center gap-2 text-sm text-slate-400">
                       <span>{post.profiles?.full_name || post.profiles?.email || 'Unknown User'}</span>
                       <span>•</span>
                       <span>{new Date(post.created_at).toLocaleDateString()}</span>
-                      <Badge variant="outline" className="text-xs border-gold/20 text-accent-gold">
+                      <Badge variant="outline" className="text-xs border-slate-600 text-slate-300">
                         {post.post_type}
                       </Badge>
                     </div>
@@ -273,13 +279,13 @@ export function CommunitySection() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-text-secondary whitespace-pre-wrap">{post.content}</p>
+                <p className="text-slate-300 whitespace-pre-wrap">{post.content}</p>
                 {post.image_url && (
                   <div className="mt-4">
                     <img 
                       src={post.image_url} 
                       alt="Chart" 
-                      className="rounded-lg max-w-full h-auto border border-gold/20"
+                      className="rounded-lg max-w-full h-auto border border-slate-600"
                     />
                   </div>
                 )}

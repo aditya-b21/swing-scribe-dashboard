@@ -9,6 +9,27 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      community_access_logs: {
+        Row: {
+          accessed_at: string
+          id: string
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          accessed_at?: string
+          id?: string
+          user_email: string
+          user_id: string
+        }
+        Update: {
+          accessed_at?: string
+          id?: string
+          user_email?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       community_posts: {
         Row: {
           content: string | null
@@ -79,6 +100,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      community_settings: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          password: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          password: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          password?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       email_verification_tokens: {
         Row: {
