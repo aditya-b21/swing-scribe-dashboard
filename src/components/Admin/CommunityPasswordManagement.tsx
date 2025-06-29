@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Eye, Users, Clock } from 'lucide-react';
+import { Lock, Eye, Users, Clock, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -85,11 +85,11 @@ export function CommunityPasswordManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 fade-in">
       {/* Password Management */}
-      <Card className="glass-effect">
+      <Card className="glass-effect shine-animation">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-accent-gold">
+          <CardTitle className="flex items-center gap-2 text-white">
             <Lock className="w-5 h-5" />
             Community Access Password
           </CardTitle>
@@ -99,38 +99,45 @@ export function CommunityPasswordManagement() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-accent-gold">Current Password</Label>
+            <Label className="text-gray-300">Current Password</Label>
             <div className="flex items-center gap-2">
               <Input
                 type="text"
                 value={currentPassword}
                 readOnly
-                className="bg-card-bg border-gold/20 text-white"
+                className="bg-card-bg border-gray-600 text-white"
               />
-              <Badge variant="outline" className="border-gold/20 text-accent-gold">
+              <Badge variant="outline" className="border-gray-600 text-gray-300">
                 {currentPassword === 'Not set' ? 'Not Set' : 'Active'}
               </Badge>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="new-password" className="text-accent-gold">New Password</Label>
+            <Label htmlFor="new-password" className="text-gray-300">New Password</Label>
             <Input
               id="new-password"
               type="password"
               placeholder="Enter new community password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="bg-card-bg border-gold/20 focus:border-accent-gold text-white"
+              className="bg-card-bg border-gray-600 focus:border-gray-400 text-white"
             />
           </div>
 
           <Button
             onClick={updatePassword}
             disabled={loading}
-            className="gradient-gold font-semibold btn-animated golden-glow"
+            className="bg-gray-700 hover:bg-gray-600 text-white font-semibold btn-animated btn-glow"
           >
-            {loading ? 'Updating...' : 'Update Password'}
+            {loading ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              'Update Password'
+            )}
           </Button>
         </CardContent>
       </Card>
@@ -138,7 +145,7 @@ export function CommunityPasswordManagement() {
       {/* Access Logs */}
       <Card className="glass-effect">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-accent-gold">
+          <CardTitle className="flex items-center gap-2 text-white">
             <Eye className="w-5 h-5" />
             Community Access Logs
           </CardTitle>
@@ -149,19 +156,19 @@ export function CommunityPasswordManagement() {
         <CardContent>
           {logsLoading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-accent-gold"></div>
+              <div className="loading-spinner rounded-full h-6 w-6 border-b-2 border-gray-400"></div>
             </div>
           ) : accessLogs.length === 0 ? (
             <div className="text-center py-8">
-              <Users className="w-12 h-12 text-accent-gold/50 mx-auto mb-4" />
+              <Users className="w-12 h-12 text-gray-500 mx-auto mb-4" />
               <p className="text-text-secondary">No access logs yet</p>
             </div>
           ) : (
             <div className="space-y-3">
               {accessLogs.map((log) => (
-                <div key={log.id} className="flex items-center justify-between p-3 bg-card-bg rounded-lg border border-gold/20">
+                <div key={log.id} className="flex items-center justify-between p-3 bg-card-bg rounded-lg border border-gray-600 card-hover">
                   <div className="flex items-center gap-3">
-                    <Users className="w-4 h-4 text-accent-gold" />
+                    <Users className="w-4 h-4 text-gray-400" />
                     <div>
                       <p className="font-medium text-white">
                         {log.profiles?.full_name || log.user_email}
@@ -180,12 +187,13 @@ export function CommunityPasswordManagement() {
             </div>
           )}
           
-          <div className="mt-4 pt-4 border-t border-gold/20">
+          <div className="mt-4 pt-4 border-t border-gray-600">
             <Button
               onClick={fetchAccessLogs}
               variant="outline"
-              className="border-gold/20 hover:bg-card-bg text-accent-gold btn-animated"
+              className="border-gray-600 hover:bg-card-bg text-gray-300 btn-animated btn-scale"
             >
+              <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Logs
             </Button>
           </div>

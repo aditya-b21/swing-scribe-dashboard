@@ -30,12 +30,12 @@ export function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-dark-bg p-4">
-      <div className="container mx-auto space-y-6">
+      <div className="container mx-auto space-y-6 fade-in">
         <Card className="glass-effect shine-animation">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Shield className="w-8 h-8 text-accent-gold" />
+                <Shield className="w-8 h-8 text-gray-400" />
                 <div>
                   <CardTitle className="text-3xl text-gradient">Admin Panel</CardTitle>
                   <p className="text-text-secondary">SwingScribe Administration</p>
@@ -44,7 +44,7 @@ export function AdminPanel() {
               <Button
                 onClick={handleLogout}
                 variant="outline"
-                className="border-red-500/20 hover:bg-red-500/10 text-red-400 btn-animated"
+                className="border-red-500/20 hover:bg-red-500/10 text-red-400 btn-animated btn-glow"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
@@ -54,24 +54,24 @@ export function AdminPanel() {
         </Card>
 
         <Tabs defaultValue="all-users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-card-bg border border-gold/20">
-            <TabsTrigger value="all-users" className="flex items-center gap-2 btn-animated text-accent-gold">
+          <TabsList className="grid w-full grid-cols-5 bg-card-bg border border-gray-600">
+            <TabsTrigger value="all-users" className="flex items-center gap-2 btn-animated btn-scale text-gray-300 data-[state=active]:text-white">
               <UsersIcon className="w-4 h-4" />
               <span className="hidden sm:inline">All Users</span>
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2 btn-animated text-accent-gold">
+            <TabsTrigger value="users" className="flex items-center gap-2 btn-animated btn-scale text-gray-300 data-[state=active]:text-white">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">User Management</span>
             </TabsTrigger>
-            <TabsTrigger value="community-password" className="flex items-center gap-2 btn-animated text-accent-gold">
+            <TabsTrigger value="community-password" className="flex items-center gap-2 btn-animated btn-scale text-gray-300 data-[state=active]:text-white">
               <Lock className="w-4 h-4" />
               <span className="hidden sm:inline">Community Password</span>
             </TabsTrigger>
-            <TabsTrigger value="community-requests" className="flex items-center gap-2 btn-animated text-accent-gold">
+            <TabsTrigger value="community-requests" className="flex items-center gap-2 btn-animated btn-scale text-gray-300 data-[state=active]:text-white">
               <UserPlus className="w-4 h-4" />
               <span className="hidden sm:inline">Community Requests</span>
             </TabsTrigger>
-            <TabsTrigger value="community" className="flex items-center gap-2 btn-animated text-accent-gold">
+            <TabsTrigger value="community" className="flex items-center gap-2 btn-animated btn-scale text-gray-300 data-[state=active]:text-white">
               <MessageSquare className="w-4 h-4" />
               <span className="hidden sm:inline">Community Management</span>
             </TabsTrigger>
