@@ -110,20 +110,31 @@ export function CommunitySection() {
 
   const fetchPosts = async () => {
     try {
-      const { data, error } = await supabase
+      // First get the posts
+      const { data: postsData, error: postsError } = await supabase
         .from('community_posts')
-        .select(`
-          *,
-          profiles!community_posts_user_id_fkey (
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setPosts(data || []);
+      if (postsError) throw postsError;
+
+      // Then get the profiles for each post
+      const userIds = postsData?.map(post => post.user_id).filter(Boolean) || [];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Combine the data
+      const postsWithProfiles = postsData?.map(post => ({
+        ...post,
+        profiles: profilesData?.find(profile => profile.id === post.user_id) || null
+      })) || [];
+
+      setPosts(postsWithProfiles);
     } catch (error) {
       console.error('Error fetching posts:', error);
       toast.error('Failed to load community posts');
@@ -244,7 +255,7 @@ export function CommunitySection() {
                       <h3 className="font-semibold text-white">{post.title}</h3>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-text-secondary">
-                      <span>{post.profiles?.full_name || post.profiles?.email}</span>
+                      <span>{post.profiles?.full_name || post.profiles?.email || 'Unknown User'}</span>
                       <span>•</span>
                       <span>{new Date(post.created_at).toLocaleDateString()}</span>
                       <Badge variant="outline" className="text-xs">
