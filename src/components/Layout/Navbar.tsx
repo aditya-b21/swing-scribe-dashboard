@@ -1,49 +1,79 @@
 
-import { motion } from 'framer-motion';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { LogOut, User } from 'lucide-react';
-import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
+import { TrendingUp, Settings, LogOut, Shield } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
+  const { profile } = useProfile();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
-    toast.success('Signed out successfully');
   };
 
+  const handleAdminAccess = () => {
+    navigate('/admin');
+  };
+
+  // Check if user is admin based on email
+  const isAdmin = user?.email === 'adityabarod807@gmail.com' || user?.email === 'admin@swingscribe.com';
+
   return (
-    <motion.nav
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="glass-effect border-b border-white/10 p-4 sticky top-0 z-50"
-    >
-      <div className="container mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-gradient">SwingScribe</h1>
-          <span className="text-sm text-text-secondary">Trading Dashboard</span>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-sm text-text-secondary">
-            <User className="w-4 h-4" />
-            {user?.email}
+    <nav className="bg-dark-surface/80 backdrop-blur-lg border-b border-green-500/20 sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <TrendingUp className="w-8 h-8 text-green-400" />
+            <div>
+              <h1 className="text-xl font-bold text-gradient">SwingScribe</h1>
+              <p className="text-xs text-text-secondary">Trading Journal & Community</p>
+            </div>
           </div>
-          <Button
-            onClick={handleSignOut}
-            variant="outline"
-            size="sm"
-            className="border-white/20 hover:bg-white/5"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
+
+          <div className="flex items-center gap-4">
+            {user && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-text-secondary">
+                  Welcome back, {profile?.full_name || user.email}
+                </span>
+                {profile?.is_community_member && (
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
+                    Community Member
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Button
+                  onClick={handleAdminAccess}
+                  variant="outline"
+                  size="sm"
+                  className="border-yellow-500/20 hover:bg-yellow-500/10 text-yellow-400 btn-animated"
+                >
+                  <Shield className="w-4 h-4 mr-2" />
+                  Admin Panel
+                </Button>
+              )}
+              
+              <Button
+                onClick={handleSignOut}
+                variant="outline"
+                size="sm"
+                className="border-red-500/20 hover:bg-red-500/10 text-red-400 btn-animated"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
-    </motion.nav>
+    </nav>
   );
 }

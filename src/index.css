@@ -1,200 +1,224 @@
 
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 17 17 17;
-    --foreground: 0 0% 100%;
+:root {
+  --primary-green: #00ff88;
+  --dark-green: #013220;
+  --dark-blue: #002244;
+  --accent-gold: #ffd700;
+  --text-primary: #ffffff;
+  --text-secondary: #a0aec0;
+  --dark-bg: #0a0f0a;
+  --dark-surface: #1a1f1a;
+}
 
-    --card: 17 17 17;
-    --card-foreground: 0 0% 100%;
+* {
+  box-sizing: border-box;
+}
 
-    --popover: 17 17 17;
-    --popover-foreground: 0 0% 100%;
+body {
+  font-family: "Inter", sans-serif;
+  background: linear-gradient(135deg, var(--dark-green) 0%, var(--dark-blue) 100%);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
 
-    --primary: 120 100% 25%;
-    --primary-foreground: 0 0% 100%;
+/* Glass Effect */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
 
-    --secondary: 17 17 17;
-    --secondary-foreground: 0 0% 81%;
+/* Gradient Text */
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary-green), var(--accent-gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
-    --muted: 27 27 27;
-    --muted-foreground: 0 0% 65%;
+/* Button Gradients */
+.gradient-green {
+  background: linear-gradient(135deg, #00ff88, #00cc6a);
+  border: none;
+  transition: all 0.3s ease;
+}
 
-    --accent: 120 100% 25%;
-    --accent-foreground: 0 0% 100%;
+.gradient-green:hover {
+  background: linear-gradient(135deg, #00cc6a, #00ff88);
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+}
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+.gradient-blue {
+  background: linear-gradient(135deg, #0066ff, #004dcc);
+  border: none;
+  transition: all 0.3s ease;
+}
 
-    --border: 27 27 27;
-    --input: 27 27 27;
-    --ring: 120 100% 25%;
+.gradient-blue:hover {
+  background: linear-gradient(135deg, #004dcc, #0066ff);
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(0, 102, 255, 0.3);
+}
 
-    --radius: 0.5rem;
+.gradient-gold {
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  border: none;
+  transition: all 0.3s ease;
+}
 
-    /* Custom colors */
-    --dark-green: #013220;
-    --dark-blue: #002244;
-    --neon-green: #00ff88;
-    --neon-blue: #00aaff;
+.gradient-gold:hover {
+  background: linear-gradient(135deg, #ffed4e, #ffd700);
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+/* Button Animations */
+.btn-animated {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-animated:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.btn-animated:hover:before {
+  left: 100%;
+}
+
+.btn-animated:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.btn-animated:active {
+  transform: translateY(0);
+  transition: transform 0.1s;
+}
+
+/* Pulse Glow Animation */
+.pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
   }
-
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-dark-bg text-text-primary font-sans;
-    background: linear-gradient(135deg, var(--dark-green) 0%, var(--dark-blue) 100%);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: #1a1a1a;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #333;
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #444;
+  50% {
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.6), 0 0 30px rgba(0, 255, 136, 0.3);
   }
 }
 
-@layer components {
-  .glass-effect {
-    background: rgba(1, 50, 32, 0.15);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(0, 255, 136, 0.2);
-    box-shadow: 0 4px 15px rgba(0, 255, 136, 0.1);
-  }
+/* Shine Animation */
+.shine-animation {
+  position: relative;
+  overflow: hidden;
+}
 
-  .gradient-green {
-    background: linear-gradient(135deg, #013220 0%, #00ff88 100%);
-  }
+.shine-animation:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: shine 3s infinite;
+}
 
-  .gradient-blue {
-    background: linear-gradient(135deg, #002244 0%, #00aaff 100%);
-  }
+@keyframes shine {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
 
-  .text-gradient {
-    background: linear-gradient(135deg, #00ff88 0%, #00aaff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    color: transparent;
-  }
+/* Card Hover Effects */
+.card-hover {
+  transition: all 0.3s ease;
+}
 
-  .card-hover {
-    transition: all 0.3s ease;
-  }
+.card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 255, 136, 0.1);
+}
 
-  .card-hover:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 255, 136, 0.25);
-  }
+/* Trading Background */
+.trading-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.1;
+}
 
-  /* Button animations */
-  .btn-animated {
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
-  }
+/* Candle Animation */
+.candle-animation {
+  animation: candle-flicker 2s infinite alternate;
+}
 
-  .btn-animated::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
-  }
+@keyframes candle-flicker {
+  0% { opacity: 0.3; transform: scaleY(1); }
+  100% { opacity: 0.6; transform: scaleY(1.1); }
+}
 
-  .btn-animated:hover::before {
-    left: 100%;
-  }
+/* Ticker Animation */
+.ticker-animation {
+  animation: ticker-scroll 30s linear infinite;
+}
 
-  .btn-animated:hover {
-    transform: scale(1.05);
-    box-shadow: 0 8px 20px rgba(0, 255, 136, 0.3);
-  }
+@keyframes ticker-scroll {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
 
-  .btn-animated:active {
-    transform: scale(0.95);
-  }
+/* Theme Colors */
+.bg-dark-bg { background-color: var(--dark-bg); }
+.bg-dark-surface { background-color: var(--dark-surface); }
+.text-text-primary { color: var(--text-primary); }
+.text-text-secondary { color: var(--text-secondary); }
+.text-accent-gold { color: var(--accent-gold); }
 
-  /* Shine animation */
-  .shine-animation {
-    position: relative;
-    overflow: hidden;
-  }
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
 
-  .shine-animation::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0, 255, 136, 0.4), transparent);
-    animation: shine 3s infinite;
-  }
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
 
-  @keyframes shine {
-    0% { left: -100%; }
-    50% { left: 100%; }
-    100% { left: 100%; }
-  }
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 136, 0.3);
+  border-radius: 4px;
+}
 
-  /* Trading animations */
-  .trading-bg {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: -1;
-    opacity: 0.1;
-  }
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 136, 0.5);
+}
 
-  .candle-animation {
-    animation: candleGlow 2s ease-in-out infinite alternate;
-  }
+/* Loading Animation */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
 
-  @keyframes candleGlow {
-    0% { opacity: 0.3; transform: scaleY(1); }
-    100% { opacity: 0.7; transform: scaleY(1.1); }
-  }
-
-  .ticker-animation {
-    animation: tickerMove 20s linear infinite;
-  }
-
-  @keyframes tickerMove {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
-  }
-
-  .pulse-glow {
-    animation: pulseGlow 2s ease-in-out infinite;
-  }
-
-  @keyframes pulseGlow {
-    0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 136, 0.3); }
-    50% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
-  }
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
