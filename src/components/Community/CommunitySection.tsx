@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -57,6 +58,21 @@ export function CommunitySection() {
       subscription.unsubscribe();
     };
   }, [hasAccess]);
+
+  // Check for auth state changes and clear community access if user logs out
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        // Clear community access when user signs out
+        clearCommunitySession();
+      } else if (event === 'SIGNED_IN' && session) {
+        // Check community access when user signs back in
+        checkCommunityAccess();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const checkCommunityAccess = async () => {
     try {
@@ -212,6 +228,11 @@ export function CommunitySection() {
         return;
       }
       
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select a valid image file');
+        return;
+      }
+      
       setSelectedImage(file);
       const reader = new FileReader();
       reader.onload = (e) => setImagePreview(e.target?.result as string);
@@ -229,7 +250,10 @@ export function CommunitySection() {
         .from('community-uploads')
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
       const { data: { publicUrl } } = supabase.storage
         .from('community-uploads')
@@ -381,10 +405,8 @@ export function CommunitySection() {
               className="bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm focus:border-slate-400 text-white"
             >
               <option value="discussion">Discussion</option>
-              <option value="analysis">Market Analysis</option>
-              <option value="setup">Trading Setup</option>
-              <option value="question">Question</option>
               <option value="chart">Chart Share</option>
+              <option value="announcement">Announcement</option>
             </select>
             <div className="flex gap-2">
               <label className="cursor-pointer">
