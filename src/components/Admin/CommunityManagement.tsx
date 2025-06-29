@@ -17,7 +17,7 @@ interface CommunityPost {
   is_pinned: boolean;
   created_at: string;
   updated_at: string;
-  user_profile?: any;
+  user_email?: string;
 }
 
 export function CommunityManagement() {
@@ -30,16 +30,27 @@ export function CommunityManagement() {
 
   const fetchPosts = async () => {
     try {
-      const { data, error } = await supabase
-        .from('community_posts' as any)
-        .select(`
-          *,
-          user_profile:profiles(*)
-        `)
+      const { data: postsData, error: postsError } = await supabase
+        .from('community_posts')
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setPosts(data || []);
+      if (postsError) throw postsError;
+
+      // Fetch user profiles separately to get email information
+      const userIds = postsData?.map(post => post.user_id).filter(Boolean) || [];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .in('id', userIds);
+
+      // Combine posts with user profile data
+      const postsWithUserInfo = postsData?.map(post => ({
+        ...post,
+        user_email: profilesData?.find(profile => profile.id === post.user_id)?.email
+      })) || [];
+
+      setPosts(postsWithUserInfo);
     } catch (error) {
       console.error('Error fetching posts:', error);
       toast.error('Failed to fetch community posts');
@@ -51,7 +62,7 @@ export function CommunityManagement() {
   const togglePin = async (postId: string, currentPinned: boolean) => {
     try {
       const { error } = await supabase
-        .from('community_posts' as any)
+        .from('community_posts')
         .update({ is_pinned: !currentPinned })
         .eq('id', postId);
 
@@ -70,7 +81,7 @@ export function CommunityManagement() {
 
     try {
       const { error } = await supabase
-        .from('community_posts' as any)
+        .from('community_posts')
         .delete()
         .eq('id', postId);
 
@@ -147,7 +158,7 @@ export function CommunityManagement() {
                     )}
                     
                     <div className="flex items-center gap-4 text-xs text-text-secondary">
-                      <span>By: {(post.user_profile as any)?.full_name || (post.user_profile as any)?.email}</span>
+                      <span>By: {post.user_email || 'Unknown User'}</span>
                       <span>{new Date(post.created_at).toLocaleDateString()}</span>
                       {post.image_url && (
                         <Badge variant="outline" className="text-xs">

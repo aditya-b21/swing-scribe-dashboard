@@ -31,7 +31,7 @@ export function UserManagement() {
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
-        .from('profiles' as any)
+        .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -48,7 +48,7 @@ export function UserManagement() {
   const updateUserStatus = async (userId: string, status: 'approved' | 'rejected') => {
     try {
       const { error } = await supabase
-        .from('profiles' as any)
+        .from('profiles')
         .update({ 
           status,
           admin_approved: status === 'approved',
