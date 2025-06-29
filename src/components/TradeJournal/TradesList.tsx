@@ -30,7 +30,8 @@ export function TradesList({ refreshTrigger }: TradesListProps) {
 
   const fetchTrades = async () => {
     try {
-      const { data, error } = await supabase
+      // Use type assertion to work around type issues
+      const { data, error } = await (supabase as any)
         .from('trades')
         .select('*')
         .eq('user_id', user?.id)

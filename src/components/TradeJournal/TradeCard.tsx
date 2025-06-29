@@ -43,7 +43,8 @@ export function TradeCard({ trade, onUpdate }: TradeCardProps) {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const { error } = await supabase
+      // Use type assertion to work around type issues
+      const { error } = await (supabase as any)
         .from('trades')
         .delete()
         .eq('id', trade.id);

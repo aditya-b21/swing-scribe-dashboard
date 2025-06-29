@@ -9,7 +9,54 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      trades: {
+        Row: {
+          buy_price: number
+          chart_image_url: string | null
+          created_at: string
+          id: string
+          profit_loss: number | null
+          quantity: number
+          return_percentage: number | null
+          sell_price: number | null
+          setup_name: string
+          stock_name: string
+          trade_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          buy_price: number
+          chart_image_url?: string | null
+          created_at?: string
+          id?: string
+          profit_loss?: number | null
+          quantity?: number
+          return_percentage?: number | null
+          sell_price?: number | null
+          setup_name: string
+          stock_name: string
+          trade_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          buy_price?: number
+          chart_image_url?: string | null
+          created_at?: string
+          id?: string
+          profit_loss?: number | null
+          quantity?: number
+          return_percentage?: number | null
+          sell_price?: number | null
+          setup_name?: string
+          stock_name?: string
+          trade_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -87,7 +87,8 @@ export function TradeForm({ onTradeAdded }: TradeFormProps) {
         }
       }
 
-      const { error } = await supabase
+      // Use type assertion to work around type issues
+      const { error } = await (supabase as any)
         .from('trades')
         .insert({
           user_id: user.id,
