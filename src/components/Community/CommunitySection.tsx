@@ -20,10 +20,8 @@ interface CommunityPost {
   created_at: string;
   user_id: string;
   image_url?: string;
-  profiles?: {
-    full_name?: string;
-    email: string;
-  };
+  user_email?: string;
+  user_full_name?: string;
 }
 
 export function CommunitySection() {
@@ -151,16 +149,10 @@ export function CommunitySection() {
     try {
       setLoading(true);
       
-      // Get posts with user profiles
+      // Get posts first
       const { data: postsData, error: postsError } = await supabase
         .from('community_posts')
-        .select(`
-          *,
-          profiles:user_id (
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
 
@@ -169,7 +161,26 @@ export function CommunitySection() {
         throw postsError;
       }
 
-      setPosts(postsData || []);
+      // Get unique user IDs from posts
+      const userIds = [...new Set(postsData?.map(post => post.user_id).filter(Boolean))];
+      
+      // Fetch profiles for these users
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .in('id', userIds);
+
+      // Combine posts with user profile data
+      const postsWithUserInfo = postsData?.map(post => {
+        const profile = profilesData?.find(p => p.id === post.user_id);
+        return {
+          ...post,
+          user_email: profile?.email || 'Unknown User',
+          user_full_name: profile?.full_name || profile?.email || 'Unknown User'
+        };
+      }) || [];
+
+      setPosts(postsWithUserInfo);
     } catch (error) {
       console.error('Error fetching posts:', error);
       toast.error('Failed to load community posts');
@@ -419,7 +430,7 @@ export function CommunitySection() {
                       <h3 className="font-semibold text-white">{post.title}</h3>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-400">
-                      <span>{post.profiles?.full_name || post.profiles?.email || 'Unknown User'}</span>
+                      <span>{post.user_full_name}</span>
                       <span>•</span>
                       <span>{new Date(post.created_at).toLocaleString()}</span>
                       <Badge variant="outline" className="text-xs border-slate-600 text-slate-300">
