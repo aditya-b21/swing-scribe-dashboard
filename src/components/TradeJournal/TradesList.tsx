@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Trade } from '@/types/trade';
+import { Trade, SetupType } from '@/types/trade';
 import { TradeCard } from './TradeCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,7 +42,13 @@ export function TradesList({ refreshTrigger }: TradesListProps) {
         throw error;
       }
       
-      setTrades(data || []);
+      // Type assertion to ensure setup_name is properly typed
+      const typedTrades = (data || []).map(trade => ({
+        ...trade,
+        setup_name: trade.setup_name as SetupType
+      }));
+      
+      setTrades(typedTrades);
     } catch (error: any) {
       console.error('Error fetching trades:', error);
       toast.error('Failed to fetch trades');

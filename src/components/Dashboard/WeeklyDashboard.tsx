@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Trade } from '@/types/trade';
+import { Trade, SetupType } from '@/types/trade';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
@@ -39,7 +38,13 @@ export function WeeklyDashboard() {
         throw error;
       }
       
-      setTrades(data || []);
+      // Type assertion to ensure setup_name is properly typed
+      const typedTrades = (data || []).map(trade => ({
+        ...trade,
+        setup_name: trade.setup_name as SetupType
+      }));
+      
+      setTrades(typedTrades);
     } catch (error) {
       console.error('Error fetching weekly trades:', error);
     } finally {
