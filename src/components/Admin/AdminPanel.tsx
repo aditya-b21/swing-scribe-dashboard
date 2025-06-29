@@ -7,15 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Shield, Users, MessageSquare, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function AdminPanel() {
   const [isAuthenticated, setIsAuthenticated] = useState(
     localStorage.getItem('admin_authenticated') === 'true'
   );
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.removeItem('admin_authenticated');
     setIsAuthenticated(false);
+    navigate('/auth');
   };
 
   if (!isAuthenticated) {

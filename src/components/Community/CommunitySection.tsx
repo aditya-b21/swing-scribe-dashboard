@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Upload, Send, Pin, Image } from 'lucide-react';
+import { MessageSquare, Upload, Send, Pin, Image, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CommunityPost {
@@ -156,15 +155,69 @@ export function CommunitySection() {
     }
   };
 
-  if (!profile || profile.status !== 'approved') {
+  const handleApprovalRequest = async () => {
+    if (!user) return;
+
+    try {
+      // Update user status to request approval
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          status: 'pending',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast.success('Approval request sent! Please wait for admin approval.');
+    } catch (error) {
+      console.error('Error requesting approval:', error);
+      toast.error('Failed to send approval request');
+    }
+  };
+
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-gold"></div>
+      </div>
+    );
+  }
+
+  if (profile.status === 'rejected') {
+    return (
+      <Card className="glass-effect border-white/20">
+        <CardContent className="text-center py-8">
+          <MessageSquare className="w-12 h-12 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2 text-red-400">Access Denied</h3>
+          <p className="text-text-secondary">
+            Your community access request has been rejected. Please contact the administrator if you believe this is an error.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (profile.status !== 'approved') {
     return (
       <Card className="glass-effect border-white/20">
         <CardContent className="text-center py-8">
           <MessageSquare className="w-12 h-12 text-text-secondary mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Community Access Pending</h3>
-          <p className="text-text-secondary">
-            Your account is pending admin approval. Once approved, you'll be able to access the community features.
+          <h3 className="text-lg font-semibold mb-2">Community Access Required</h3>
+          <p className="text-text-secondary mb-6">
+            You need admin approval to access the community features. Click below to request access.
           </p>
+          {profile.status === 'pending' ? (
+            <div className="flex items-center justify-center gap-2 text-yellow-400">
+              <Clock className="w-5 h-5" />
+              <span>Approval request pending...</span>
+            </div>
+          ) : (
+            <Button onClick={handleApprovalRequest} className="gradient-gold text-dark-bg">
+              Request Community Access
+            </Button>
+          )}
         </CardContent>
       </Card>
     );

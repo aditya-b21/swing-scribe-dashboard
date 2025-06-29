@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Check, X } from 'lucide-react';
+import { Users, Check, X, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Profile {
@@ -23,6 +23,7 @@ export function UserManagement() {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [updating, setUpdating] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -30,6 +31,7 @@ export function UserManagement() {
 
   const fetchUsers = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -58,6 +60,8 @@ export function UserManagement() {
 
   const updateUserStatus = async (userId: string, status: 'approved' | 'rejected') => {
     try {
+      setUpdating(userId);
+      
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -69,11 +73,21 @@ export function UserManagement() {
 
       if (error) throw error;
 
-      await fetchUsers();
+      // Update the local state immediately
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === userId 
+            ? { ...user, status, admin_approved: status === 'approved', updated_at: new Date().toISOString() }
+            : user
+        )
+      );
+
       toast.success(`User ${status} successfully`);
     } catch (error) {
       console.error('Error updating user status:', error);
       toast.error('Failed to update user status');
+    } finally {
+      setUpdating(null);
     }
   };
 
@@ -113,17 +127,29 @@ export function UserManagement() {
         <CardDescription>Manage user approvals and access</CardDescription>
         
         <div className="flex justify-between items-center">
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-48 bg-white/5 border-white/20">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Users</SelectItem>
-              <SelectItem value="pending">Pending Approval</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-4 items-center">
+            <Select value={filter} onValueChange={setFilter}>
+              <SelectTrigger className="w-48 bg-white/5 border-white/20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Users</SelectItem>
+                <SelectItem value="pending">Pending Approval</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Button
+              onClick={fetchUsers}
+              variant="outline"
+              size="sm"
+              className="border-white/20 hover:bg-white/5"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
           
           <div className="flex gap-4 text-sm text-text-secondary">
             <span>Total: {users.length}</span>
@@ -161,49 +187,79 @@ export function UserManagement() {
                   </p>
                 </div>
                 
-                {user.status === 'pending' && (
-                  <div className="flex gap-2">
+                <div className="flex gap-2">
+                  {user.status === 'pending' && (
+                    <>
+                      <Button
+                        size="sm"
+                        onClick={() => updateUserStatus(user.id, 'approved')}
+                        className="bg-green-600 hover:bg-green-700"
+                        disabled={updating === user.id}
+                      >
+                        {updating === user.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4 mr-1" />
+                            Approve
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => updateUserStatus(user.id, 'rejected')}
+                        disabled={updating === user.id}
+                      >
+                        {updating === user.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        ) : (
+                          <>
+                            <X className="w-4 h-4 mr-1" />
+                            Reject
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  )}
+                  
+                  {user.status === 'approved' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => updateUserStatus(user.id, 'rejected')}
+                      className="border-red-500 text-red-400 hover:bg-red-500/10"
+                      disabled={updating === user.id}
+                    >
+                      {updating === user.id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
+                      ) : (
+                        <>
+                          <X className="w-4 h-4 mr-1" />
+                          Revoke Access
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  
+                  {user.status === 'rejected' && (
                     <Button
                       size="sm"
                       onClick={() => updateUserStatus(user.id, 'approved')}
                       className="bg-green-600 hover:bg-green-700"
+                      disabled={updating === user.id}
                     >
-                      <Check className="w-4 h-4 mr-1" />
-                      Approve
+                      {updating === user.id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4 mr-1" />
+                          Restore Access
+                        </>
+                      )}
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => updateUserStatus(user.id, 'rejected')}
-                    >
-                      <X className="w-4 h-4 mr-1" />
-                      Reject
-                    </Button>
-                  </div>
-                )}
-                
-                {user.status === 'approved' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => updateUserStatus(user.id, 'rejected')}
-                    className="border-red-500 text-red-400 hover:bg-red-500/10"
-                  >
-                    <X className="w-4 h-4 mr-1" />
-                    Revoke Access
-                  </Button>
-                )}
-                
-                {user.status === 'rejected' && (
-                  <Button
-                    size="sm"
-                    onClick={() => updateUserStatus(user.id, 'approved')}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Check className="w-4 h-4 mr-1" />
-                    Restore Access
-                  </Button>
-                )}
+                  )}
+                </div>
               </div>
             ))
           )}
