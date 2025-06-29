@@ -222,47 +222,66 @@ export function CommunitySection() {
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error('Image size must be less than 5MB');
-        return;
-      }
-      
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select a valid image file');
-        return;
-      }
-      
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onload = (e) => setImagePreview(e.target?.result as string);
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
     }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file');
+      return;
+    }
+    
+    setSelectedImage(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        setImagePreview(e.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
-      const fileExt = file.name.split('.').pop();
+      console.log('Starting image upload...');
+      
+      const fileExt = file.name.split('.').pop() || 'jpg';
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `community-images/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
+      console.log('Uploading to path:', filePath);
+
+      const { data, error: uploadError } = await supabase.storage
         .from('community-uploads')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
         throw uploadError;
       }
 
+      console.log('Upload successful:', data);
+
+      // Get the public URL
       const { data: { publicUrl } } = supabase.storage
         .from('community-uploads')
         .getPublicUrl(filePath);
 
+      console.log('Public URL:', publicUrl);
       return publicUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
-      toast.error('Failed to upload image');
+      toast.error('Failed to upload image. Please try again.');
       return null;
     }
   };
@@ -284,14 +303,24 @@ export function CommunitySection() {
       
       // Upload image if selected
       if (selectedImage) {
+        console.log('Uploading image...');
         imageUrl = await uploadImage(selectedImage);
         if (!imageUrl) {
           setUploadingPost(false);
           return;
         }
+        console.log('Image uploaded successfully:', imageUrl);
       }
 
-      const { error } = await supabase
+      console.log('Creating post with data:', {
+        title: newPost.title.trim(),
+        content: newPost.content.trim(),
+        post_type: newPost.post_type,
+        user_id: user.id,
+        image_url: imageUrl
+      });
+
+      const { data, error } = await supabase
         .from('community_posts')
         .insert({
           title: newPost.title.trim(),
@@ -301,16 +330,27 @@ export function CommunitySection() {
           image_url: imageUrl,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
-        });
+        })
+        .select();
 
       if (error) {
         console.error('Post creation error:', error);
         throw error;
       }
 
+      console.log('Post created successfully:', data);
+
+      // Reset form
       setNewPost({ title: '', content: '', post_type: 'discussion' });
       setSelectedImage(null);
       setImagePreview(null);
+      
+      // Clear the file input
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
+      }
+      
       toast.success('Post created successfully!');
       await fetchPosts();
     } catch (error) {
@@ -324,6 +364,12 @@ export function CommunitySection() {
   const removeImage = () => {
     setSelectedImage(null);
     setImagePreview(null);
+    
+    // Clear the file input
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
   };
 
   // Show password prompt if user doesn't have access
@@ -392,6 +438,7 @@ export function CommunitySection() {
                 variant="destructive"
                 size="sm"
                 className="absolute top-2 right-2"
+                type="button"
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -427,13 +474,13 @@ export function CommunitySection() {
               </label>
               <Button
                 onClick={createPost}
-                disabled={uploadingPost}
+                disabled={uploadingPost || (!newPost.title.trim() || !newPost.content.trim())}
                 className="gradient-slate font-semibold btn-animated btn-glow"
               >
                 {uploadingPost ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Posting...
+                    {selectedImage ? 'Uploading...' : 'Posting...'}
                   </>
                 ) : (
                   <>
