@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Users, Send, Pin, Upload, X } from 'lucide-react';
+import { MessageSquare, Users, Send, Pin, Upload, X, ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { CommunityPasswordPrompt } from './CommunityPasswordPrompt';
 
@@ -372,7 +371,13 @@ export function CommunitySection() {
     }
   };
 
-  // Show password prompt if user doesn't have access
+  const triggerFileInput = () => {
+    const fileInput = document.getElementById('chart-upload-input') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  };
+
   if (!hasAccess) {
     return (
       <div className="space-y-6">
@@ -444,6 +449,15 @@ export function CommunitySection() {
               </Button>
             </div>
           )}
+
+          {/* Hidden file input */}
+          <input
+            id="chart-upload-input"
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
           
           <div className="flex justify-between items-center">
             <select
@@ -456,22 +470,15 @@ export function CommunitySection() {
               <option value="announcement">Announcement</option>
             </select>
             <div className="flex gap-2">
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  className="hidden"
-                />
-                <Button
-                  variant="outline"
-                  className="border-slate-600 hover:bg-slate-800 text-slate-300 btn-animated"
-                  type="button"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Chart
-                </Button>
-              </label>
+              <Button
+                onClick={triggerFileInput}
+                variant="outline"
+                className="border-slate-600 hover:bg-slate-800 text-slate-300 btn-animated"
+                type="button"
+              >
+                <ImageIcon className="w-4 h-4 mr-2" />
+                {selectedImage ? 'Change Chart' : 'Upload Chart'}
+              </Button>
               <Button
                 onClick={createPost}
                 disabled={uploadingPost || (!newPost.title.trim() || !newPost.content.trim())}
