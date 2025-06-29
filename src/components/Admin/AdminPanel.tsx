@@ -5,10 +5,11 @@ import { UserManagement } from './UserManagement';
 import { CommunityManagement } from './CommunityManagement';
 import { CommunityRequestsManagement } from './CommunityRequestsManagement';
 import { AllUsersManagement } from './AllUsersManagement';
+import { CommunityPasswordManagement } from './CommunityPasswordManagement';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Shield, Users, MessageSquare, UserPlus, LogOut, UsersIcon } from 'lucide-react';
+import { Shield, Users, MessageSquare, UserPlus, LogOut, UsersIcon, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export function AdminPanel() {
@@ -28,13 +29,13 @@ export function AdminPanel() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-900/20 to-blue-900/20 p-4">
+    <div className="min-h-screen bg-dark-bg p-4">
       <div className="container mx-auto space-y-6">
-        <Card className="glass-effect border-green-500/20 shine-animation">
+        <Card className="glass-effect shine-animation">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Shield className="w-8 h-8 text-green-400" />
+                <Shield className="w-8 h-8 text-accent-gold" />
                 <div>
                   <CardTitle className="text-3xl text-gradient">Admin Panel</CardTitle>
                   <p className="text-text-secondary">SwingScribe Administration</p>
@@ -53,20 +54,24 @@ export function AdminPanel() {
         </Card>
 
         <Tabs defaultValue="all-users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white/5 border border-green-500/10">
-            <TabsTrigger value="all-users" className="flex items-center gap-2 btn-animated">
+          <TabsList className="grid w-full grid-cols-5 bg-card-bg border border-gold/20">
+            <TabsTrigger value="all-users" className="flex items-center gap-2 btn-animated text-accent-gold">
               <UsersIcon className="w-4 h-4" />
               <span className="hidden sm:inline">All Users</span>
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2 btn-animated">
+            <TabsTrigger value="users" className="flex items-center gap-2 btn-animated text-accent-gold">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">User Management</span>
             </TabsTrigger>
-            <TabsTrigger value="community-requests" className="flex items-center gap-2 btn-animated">
+            <TabsTrigger value="community-password" className="flex items-center gap-2 btn-animated text-accent-gold">
+              <Lock className="w-4 h-4" />
+              <span className="hidden sm:inline">Community Password</span>
+            </TabsTrigger>
+            <TabsTrigger value="community-requests" className="flex items-center gap-2 btn-animated text-accent-gold">
               <UserPlus className="w-4 h-4" />
               <span className="hidden sm:inline">Community Requests</span>
             </TabsTrigger>
-            <TabsTrigger value="community" className="flex items-center gap-2 btn-animated">
+            <TabsTrigger value="community" className="flex items-center gap-2 btn-animated text-accent-gold">
               <MessageSquare className="w-4 h-4" />
               <span className="hidden sm:inline">Community Management</span>
             </TabsTrigger>
@@ -78,6 +83,10 @@ export function AdminPanel() {
 
           <TabsContent value="users">
             <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="community-password">
+            <CommunityPasswordManagement />
           </TabsContent>
 
           <TabsContent value="community-requests">
