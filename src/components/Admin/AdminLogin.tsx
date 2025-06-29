@@ -56,7 +56,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
             <Shield className="w-12 h-12 text-accent-gold" />
           </div>
           <CardTitle className="text-2xl text-gradient">Admin Access</CardTitle>
-          <CardDescription>Secure admin panel authentication</CardDescription>
+          <CardDescription>Enter your admin credentials to continue</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -65,6 +65,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
               <Input
                 id="username"
                 type="text"
+                placeholder="Enter username"
                 value={credentials.username}
                 onChange={(e) => setCredentials(prev => ({ ...prev, username: e.target.value }))}
                 className="bg-white/5 border-white/20"
@@ -77,6 +78,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
               <Input
                 id="password"
                 type="password"
+                placeholder="Enter password"
                 value={credentials.password}
                 onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
                 className="bg-white/5 border-white/20"
@@ -89,6 +91,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
               <Input
                 id="masterKey"
                 type="password"
+                placeholder="Enter master key"
                 value={credentials.masterKey}
                 onChange={(e) => setCredentials(prev => ({ ...prev, masterKey: e.target.value }))}
                 className="bg-white/5 border-white/20"

@@ -45,13 +45,13 @@ export function CommunitySection() {
 
     // Set up real-time subscription for posts changes
     const postSubscription = supabase
-      .channel('public:community_posts')
+      .channel('community-posts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'community_posts' }, fetchPosts)
       .subscribe();
 
     // Set up real-time subscription for replies changes
     const replySubscription = supabase
-      .channel('public:community_replies')
+      .channel('community-replies')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'community_replies' }, fetchPosts)
       .subscribe();
 
@@ -73,26 +73,13 @@ export function CommunitySection() {
 
       if (error) {
         console.error('Fetch error:', error);
-        throw error;
+        return;
       }
 
       console.log('Fetched community posts:', data);
-      
-      // Type cast the posts to ensure proper typing
-      const typedPosts = data?.map(post => ({
-        ...post,
-        post_type: (post.post_type || 'discussion') as 'discussion' | 'analysis' | 'question',
-        title: post.title || '',
-        content: post.content || '',
-        created_at: post.created_at || new Date().toISOString(),
-        user_id: post.user_id || '',
-        replies: post.replies || []
-      })) || [];
-      
-      setPosts(typedPosts as CommunityPost[]);
+      setPosts(data || []);
     } catch (error) {
       console.error('Error fetching community posts:', error);
-      toast.error('Failed to fetch community posts');
     } finally {
       setLoading(false);
     }
@@ -115,7 +102,8 @@ export function CommunitySection() {
 
       if (error) {
         console.error('Error requesting community access:', error);
-        throw error;
+        toast.error('Failed to request community access');
+        return;
       }
 
       toast.success('Community access requested! Please wait for admin approval.');
@@ -144,7 +132,8 @@ export function CommunitySection() {
 
       if (error) {
         console.error('Post creation error:', error);
-        throw error;
+        toast.error('Failed to create post');
+        return;
       }
 
       setNewPost({ title: '', content: '', post_type: 'discussion' });
@@ -176,7 +165,8 @@ export function CommunitySection() {
 
       if (error) {
         console.error('Reply creation error:', error);
-        throw error;
+        toast.error('Failed to add reply');
+        return;
       }
 
       setNewReply(prev => ({ ...prev, [postId]: '' }));
@@ -225,7 +215,7 @@ export function CommunitySection() {
           <CardDescription>Join our trading community to share insights and learn from others</CardDescription>
         </CardHeader>
         <CardContent className="text-center py-8">
-          {!communityRequestStatus || (!hasPendingRequest && !hasBeenDenied) ? (
+          {!communityRequestStatus ? (
             <div className="space-y-4">
               <p className="text-text-secondary mb-4">
                 Request access to join our exclusive trading community where you can share charts, ask questions, and discuss strategies with fellow traders.

@@ -110,7 +110,7 @@ export function AuthPage() {
       toast.success('Admin login successful!');
       navigate('/admin');
     } else {
-      setError('Invalid admin credentials. Please check your username, password, and master key.');
+      setError('Invalid admin credentials.');
     }
     
     setLoading(false);

@@ -62,59 +62,57 @@ export function useProfile() {
 
       if (error) {
         console.error('Profile fetch error:', error);
-        
-        // If profile doesn't exist, create one
-        if (error.code === 'PGRST116') {
-          console.log('Profile not found, creating new profile...');
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert({
-              id: user.id,
-              email: user.email || '',
-              status: 'pending',
-              community_request_status: null
-            })
-            .select()
-            .single();
-
-          if (createError) {
-            console.error('Error creating profile:', createError);
-            return;
-          }
-
-          const typedProfile = {
-            ...newProfile,
-            status: (newProfile.status || 'pending') as 'pending' | 'approved' | 'rejected',
-            community_request_status: newProfile.community_request_status as 'pending' | 'approved' | 'denied' | null,
-            email_verified: newProfile.email_verified || false,
-            admin_approved: newProfile.admin_approved || false,
-            created_at: newProfile.created_at || new Date().toISOString(),
-            updated_at: newProfile.updated_at || new Date().toISOString()
-          };
-
-          setProfile(typedProfile as Profile);
-          return;
-        }
         return;
       }
 
       if (data) {
         // Type cast the data to ensure proper typing
-        const typedProfile = {
-          ...data,
-          status: (data.status || 'pending') as 'pending' | 'approved' | 'rejected',
-          community_request_status: data.community_request_status as 'pending' | 'approved' | 'denied' | null,
+        const typedProfile: Profile = {
+          id: data.id,
+          email: data.email || '',
+          full_name: data.full_name || undefined,
           email_verified: data.email_verified || false,
           admin_approved: data.admin_approved || false,
+          status: (data.status || 'pending') as 'pending' | 'approved' | 'rejected',
+          community_request_status: data.community_request_status as 'pending' | 'approved' | 'denied' | null,
           created_at: data.created_at || new Date().toISOString(),
           updated_at: data.updated_at || new Date().toISOString()
         };
 
         console.log('Profile fetched:', typedProfile);
-        setProfile(typedProfile as Profile);
+        setProfile(typedProfile);
       } else {
-        console.log('No profile found, user needs to be created');
-        setProfile(null);
+        console.log('No profile found, creating new profile...');
+        // Create profile if it doesn't exist
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            email: user.email || '',
+            status: 'pending',
+            community_request_status: null
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating profile:', createError);
+          return;
+        }
+
+        const typedProfile: Profile = {
+          id: newProfile.id,
+          email: newProfile.email || '',
+          full_name: newProfile.full_name || undefined,
+          email_verified: newProfile.email_verified || false,
+          admin_approved: newProfile.admin_approved || false,
+          status: (newProfile.status || 'pending') as 'pending' | 'approved' | 'rejected',
+          community_request_status: newProfile.community_request_status as 'pending' | 'approved' | 'denied' | null,
+          created_at: newProfile.created_at || new Date().toISOString(),
+          updated_at: newProfile.updated_at || new Date().toISOString()
+        };
+
+        setProfile(typedProfile);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);

@@ -57,20 +57,23 @@ export function CommunityRequestsManagement() {
 
       if (error) {
         console.error('Fetch error:', error);
-        throw error;
+        toast.error('Failed to fetch community requests');
+        return;
       }
       
       console.log('Fetched community requests:', data);
       
       const typedRequests = data?.map(request => ({
-        ...request,
+        id: request.id,
+        email: request.email || '',
+        full_name: request.full_name || undefined,
         status: (request.status || 'pending') as 'pending' | 'approved' | 'rejected',
         community_request_status: request.community_request_status as 'pending' | 'approved' | 'denied' | null,
         created_at: request.created_at || new Date().toISOString(),
         updated_at: request.updated_at || new Date().toISOString()
       })) || [];
       
-      setRequests(typedRequests as CommunityRequest[]);
+      setRequests(typedRequests);
     } catch (error) {
       console.error('Error fetching community requests:', error);
       toast.error('Failed to fetch community requests');
@@ -99,7 +102,8 @@ export function CommunityRequestsManagement() {
 
       if (error) {
         console.error('Update error:', error);
-        throw error;
+        toast.error(`Failed to ${communityStatus} community request`);
+        return;
       }
 
       console.log(`Successfully updated community request for user ${userId} to ${communityStatus}`);
