@@ -29,19 +29,24 @@ export function TradesList({ refreshTrigger }: TradesListProps) {
   }, [user, refreshTrigger]);
 
   const fetchTrades = async () => {
+    if (!user) return;
+    
     try {
-      // Use type assertion to work around type issues
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('trades')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+      
       setTrades(data || []);
     } catch (error: any) {
-      toast.error('Failed to fetch trades');
       console.error('Error fetching trades:', error);
+      toast.error('Failed to fetch trades');
     } finally {
       setLoading(false);
     }
@@ -54,30 +59,40 @@ export function TradesList({ refreshTrigger }: TradesListProps) {
   });
 
   const exportTrades = () => {
-    const csvData = trades.map(trade => ({
-      'Stock Name': trade.stock_name,
-      'Setup': trade.setup_name,
-      'Buy Price': trade.buy_price,
-      'Sell Price': trade.sell_price || 'N/A',
-      'Quantity': trade.quantity,
-      'P&L': trade.profit_loss || 'N/A',
-      'Return %': trade.return_percentage || 'N/A',
-      'Date': new Date(trade.trade_date).toLocaleDateString(),
-    }));
+    if (trades.length === 0) {
+      toast.error('No trades to export');
+      return;
+    }
 
-    const csv = [
-      Object.keys(csvData[0]).join(','),
-      ...csvData.map(row => Object.values(row).join(','))
-    ].join('\n');
+    try {
+      const csvData = trades.map(trade => ({
+        'Stock Name': trade.stock_name,
+        'Setup': trade.setup_name,
+        'Buy Price': trade.buy_price,
+        'Sell Price': trade.sell_price || 'N/A',
+        'Quantity': trade.quantity,
+        'P&L': trade.profit_loss || 'N/A',
+        'Return %': trade.return_percentage || 'N/A',
+        'Date': new Date(trade.trade_date).toLocaleDateString(),
+      }));
 
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `trades-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Trades exported successfully!');
+      const csv = [
+        Object.keys(csvData[0]).join(','),
+        ...csvData.map(row => Object.values(row).join(','))
+      ].join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `trades-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Trades exported successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export trades');
+    }
   };
 
   if (loading) {

@@ -43,17 +43,20 @@ export function TradeCard({ trade, onUpdate }: TradeCardProps) {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      // Use type assertion to work around type issues
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('trades')
         .delete()
         .eq('id', trade.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
 
       toast.success('Trade deleted successfully');
       onUpdate();
     } catch (error: any) {
+      console.error('Failed to delete trade:', error);
       toast.error('Failed to delete trade');
     } finally {
       setIsDeleting(false);
@@ -139,6 +142,11 @@ export function TradeCard({ trade, onUpdate }: TradeCardProps) {
                     src={trade.chart_image_url}
                     alt={`${trade.stock_name} chart`}
                     className="w-full h-auto rounded-lg"
+                    onError={(e) => {
+                      console.error('Image failed to load:', trade.chart_image_url);
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
                   />
                 </DialogContent>
               </Dialog>
@@ -148,7 +156,9 @@ export function TradeCard({ trade, onUpdate }: TradeCardProps) {
               size="sm"
               variant="outline"
               className="border-white/20"
-              onClick={() => {/* TODO: Add edit functionality */}}
+              onClick={() => {
+                toast.info('Edit functionality coming soon!');
+              }}
             >
               <Edit className="w-4 h-4" />
             </Button>

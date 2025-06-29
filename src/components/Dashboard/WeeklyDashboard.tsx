@@ -5,7 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Trade } from '@/types/trade';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { TrendingUp, TrendingDown, Target, DollarSign } from 'lucide-react';
 
 export function WeeklyDashboard() {
@@ -20,19 +21,24 @@ export function WeeklyDashboard() {
   }, [user]);
 
   const fetchWeeklyTrades = async () => {
+    if (!user) return;
+    
     try {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
 
-      // Use type assertion to work around type issues
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('trades')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .gte('created_at', weekAgo.toISOString())
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+      
       setTrades(data || []);
     } catch (error) {
       console.error('Error fetching weekly trades:', error);
@@ -64,7 +70,7 @@ export function WeeklyDashboard() {
   const profitLossData = [
     { name: 'Profit', value: totalProfit, fill: '#10B981' },
     { name: 'Loss', value: totalLoss, fill: '#EF4444' }
-  ];
+  ].filter(item => item.value > 0);
 
   const setupData = trades.reduce((acc, trade) => {
     acc[trade.setup_name] = (acc[trade.setup_name] || 0) + 1;
@@ -92,7 +98,20 @@ export function WeeklyDashboard() {
 
   const lineChartData = Object.values(dailyData);
 
-  const COLORS = ['#10B981', '#EF4444'];
+  const chartConfig = {
+    profit: {
+      label: "Profit",
+      color: "#10B981",
+    },
+    loss: {
+      label: "Loss", 
+      color: "#EF4444",
+    },
+    cumulative: {
+      label: "Cumulative P&L",
+      color: "#E4C06D",
+    },
+  };
 
   if (loading) {
     return (
@@ -169,65 +188,61 @@ export function WeeklyDashboard() {
       {/* Charts */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Profit vs Loss Bar Chart */}
-        <Card className="glass-effect border-white/10">
-          <CardHeader>
-            <CardTitle>Profit vs Loss</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={profitLossData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis dataKey="name" stroke="#CFCFCF" />
-                <YAxis stroke="#CFCFCF" tickFormatter={(value) => `₹${(value/1000).toFixed(0)}k`} />
-                <Tooltip 
-                  formatter={(value: number) => [formatCurrency(value), '']}
-                  contentStyle={{ 
-                    backgroundColor: '#1a1a1a', 
-                    border: '1px solid #333',
-                    borderRadius: '8px',
-                    color: '#fff'
-                  }}
-                />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        {profitLossData.length > 0 && (
+          <Card className="glass-effect border-white/10">
+            <CardHeader>
+              <CardTitle>Profit vs Loss</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[300px]">
+                <BarChart data={profitLossData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                  <XAxis dataKey="name" stroke="#CFCFCF" />
+                  <YAxis stroke="#CFCFCF" tickFormatter={(value) => `₹${(value/1000).toFixed(0)}k`} />
+                  <ChartTooltip 
+                    content={<ChartTooltipContent 
+                      formatter={(value: number) => [formatCurrency(value), '']}
+                    />}
+                  />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Setup Distribution Pie Chart */}
-        <Card className="glass-effect border-white/10">
-          <CardHeader>
-            <CardTitle>Setup Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={setupChartData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={120}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {setupChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value: number, name: string) => [`${value} trades`, name]}
-                  contentStyle={{ 
-                    backgroundColor: '#1a1a1a', 
-                    border: '1px solid #333',
-                    borderRadius: '8px',
-                    color: '#fff'
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        {setupChartData.length > 0 && (
+          <Card className="glass-effect border-white/10">
+            <CardHeader>
+              <CardTitle>Setup Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[300px]">
+                <PieChart>
+                  <Pie
+                    data={setupChartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={120}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {setupChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip 
+                    content={<ChartTooltipContent 
+                      formatter={(value: number, name: string) => [`${value} trades`, name]}
+                    />}
+                  />
+                </PieChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Cumulative P&L Line Chart */}
@@ -237,19 +252,15 @@ export function WeeklyDashboard() {
             <CardTitle>Daily Cumulative P&L</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ChartContainer config={chartConfig} className="h-[300px]">
               <LineChart data={lineChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                 <XAxis dataKey="date" stroke="#CFCFCF" />
                 <YAxis stroke="#CFCFCF" tickFormatter={(value) => `₹${(value/1000).toFixed(0)}k`} />
-                <Tooltip 
-                  formatter={(value: number) => [formatCurrency(value), 'Cumulative P&L']}
-                  contentStyle={{ 
-                    backgroundColor: '#1a1a1a', 
-                    border: '1px solid #333',
-                    borderRadius: '8px',
-                    color: '#fff'
-                  }}
+                <ChartTooltip 
+                  content={<ChartTooltipContent 
+                    formatter={(value: number) => [formatCurrency(value), 'Cumulative P&L']}
+                  />}
                 />
                 <Line 
                   type="monotone" 
@@ -259,7 +270,18 @@ export function WeeklyDashboard() {
                   dot={{ fill: '#E4C06D', strokeWidth: 2, r: 4 }}
                 />
               </LineChart>
-            </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* No data message */}
+      {totalTrades === 0 && (
+        <Card className="glass-effect border-white/10">
+          <CardContent className="p-8 text-center">
+            <div className="text-text-secondary">
+              No trades found for the past 7 days. Start by adding some trades to see your performance!
+            </div>
           </CardContent>
         </Card>
       )}

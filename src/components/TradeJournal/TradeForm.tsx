@@ -38,26 +38,43 @@ export function TradeForm({ onTradeAdded }: TradeFormProps) {
         toast.error('Image size should be less than 5MB');
         return;
       }
+      
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select a valid image file');
+        return;
+      }
+      
       setChartImage(file);
       setPreviewUrl(URL.createObjectURL(file));
     }
   };
 
   const removeImage = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setChartImage(null);
     setPreviewUrl('');
   };
 
   const uploadImage = async (file: File): Promise<string | null> => {
+    if (!user) return null;
+    
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from('trade-charts')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
       const { data } = supabase.storage
         .from('trade-charts')
@@ -72,7 +89,25 @@ export function TradeForm({ onTradeAdded }: TradeFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      toast.error('Please log in to add trades');
+      return;
+    }
+
+    if (!formData.stock_name.trim()) {
+      toast.error('Please enter a stock name');
+      return;
+    }
+
+    if (formData.buy_price <= 0) {
+      toast.error('Please enter a valid buy price');
+      return;
+    }
+
+    if (formData.quantity <= 0) {
+      toast.error('Please enter a valid quantity');
+      return;
+    }
 
     setIsLoading(true);
 
@@ -87,12 +122,11 @@ export function TradeForm({ onTradeAdded }: TradeFormProps) {
         }
       }
 
-      // Use type assertion to work around type issues
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('trades')
         .insert({
           user_id: user.id,
-          stock_name: formData.stock_name.toUpperCase(),
+          stock_name: formData.stock_name.toUpperCase().trim(),
           buy_price: formData.buy_price,
           sell_price: formData.sell_price,
           quantity: formData.quantity,
@@ -100,7 +134,10 @@ export function TradeForm({ onTradeAdded }: TradeFormProps) {
           chart_image_url: chartImageUrl,
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Insert error:', error);
+        throw error;
+      }
 
       toast.success('Trade added successfully!');
       
@@ -112,11 +149,11 @@ export function TradeForm({ onTradeAdded }: TradeFormProps) {
         quantity: 1,
         setup_name: 'VCP Setup A1',
       });
-      setChartImage(null);
-      setPreviewUrl('');
+      removeImage();
       
       onTradeAdded();
     } catch (error: any) {
+      console.error('Error adding trade:', error);
       toast.error(error.message || 'Failed to add trade');
     } finally {
       setIsLoading(false);
@@ -129,7 +166,7 @@ export function TradeForm({ onTradeAdded }: TradeFormProps) {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="stock_name">Stock Name</Label>
+              <Label htmlFor="stock_name">Stock Name *</Label>
               <Input
                 id="stock_name"
                 placeholder="e.g., RELIANCE, INFY"
@@ -141,7 +178,7 @@ export function TradeForm({ onTradeAdded }: TradeFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="setup_name">Setup Type</Label>
+              <Label htmlFor="setup_name">Setup Type *</Label>
               <Select
                 value={formData.setup_name}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, setup_name: value as SetupType }))}
@@ -158,11 +195,12 @@ export function TradeForm({ onTradeAdded }: TradeFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="buy_price">Buy Price (₹)</Label>
+              <Label htmlFor="buy_price">Buy Price (₹) *</Label>
               <Input
                 id="buy_price"
                 type="number"
                 step="0.01"
+                min="0"
                 placeholder="0.00"
                 value={formData.buy_price || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, buy_price: parseFloat(e.target.value) || 0 }))}
@@ -177,6 +215,7 @@ export function TradeForm({ onTradeAdded }: TradeFormProps) {
                 id="sell_price"
                 type="number"
                 step="0.01"
+                min="0"
                 placeholder="0.00"
                 value={formData.sell_price || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, sell_price: parseFloat(e.target.value) || undefined }))}
@@ -185,7 +224,7 @@ export function TradeForm({ onTradeAdded }: TradeFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity</Label>
+              <Label htmlFor="quantity">Quantity *</Label>
               <Input
                 id="quantity"
                 type="number"
