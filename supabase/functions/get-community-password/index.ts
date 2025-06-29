@@ -18,6 +18,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    console.log('Fetching community password...')
+
     // Get community password from settings
     const { data, error } = await supabaseClient
       .from('community_settings')
@@ -36,8 +38,29 @@ serve(async (req) => {
       )
     }
 
-    // If no password is set, return the default
-    const currentPassword = data?.password || 'SwingScribe1234@'
+    // If no password is set, return the default and also set it in the database
+    let currentPassword = data?.password || 'SwingScribe1234@'
+    
+    if (!data) {
+      console.log('No password found in database, setting default...')
+      // Set the default password in the database
+      const { error: insertError } = await supabaseClient
+        .from('community_settings')
+        .insert({
+          key: 'community_password',
+          password: 'SwingScribe1234@'
+        })
+      
+      if (insertError) {
+        console.error('Error setting default password:', insertError)
+      } else {
+        console.log('Default password set successfully')
+      }
+      
+      currentPassword = 'SwingScribe1234@'
+    }
+
+    console.log('Current password retrieved:', currentPassword)
 
     return new Response(
       JSON.stringify({ password: currentPassword }),

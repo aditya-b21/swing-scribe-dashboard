@@ -44,11 +44,31 @@ serve(async (req) => {
       )
     }
 
-    // If no password is set in DB, use default
-    const storedPassword = data?.password || 'SwingScribe1234@'
+    // If no password is set in DB, use default and set it
+    let storedPassword = data?.password
+    
+    if (!storedPassword) {
+      console.log('No password in database, setting and using default')
+      // Set the default password in the database
+      const { error: insertError } = await supabaseClient
+        .from('community_settings')
+        .insert({
+          key: 'community_password',
+          password: 'SwingScribe1234@'
+        })
+      
+      if (insertError) {
+        console.error('Error setting default password:', insertError)
+      }
+      
+      storedPassword = 'SwingScribe1234@'
+    }
+
     const isValid = storedPassword === password
 
     console.log('Password verification result:', isValid)
+    console.log('Stored password:', storedPassword)
+    console.log('Provided password:', password)
 
     return new Response(
       JSON.stringify({ valid: isValid }),

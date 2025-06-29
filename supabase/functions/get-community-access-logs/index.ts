@@ -59,18 +59,10 @@ serve(async (req) => {
       )
     }
 
-    // Get access logs with user profiles
+    // Get access logs with basic user info
     const { data: logs, error } = await supabaseClient
       .from('community_access_logs')
-      .select(`
-        id,
-        user_email,
-        user_id,
-        accessed_at,
-        profiles:user_id (
-          full_name
-        )
-      `)
+      .select('*')
       .order('accessed_at', { ascending: false })
 
     if (error) {
@@ -84,8 +76,31 @@ serve(async (req) => {
       )
     }
 
+    // Try to get profile information for each log entry
+    const logsWithProfiles = await Promise.all(
+      (logs || []).map(async (log) => {
+        try {
+          const { data: profile } = await supabaseClient
+            .from('profiles')
+            .select('full_name')
+            .eq('id', log.user_id)
+            .maybeSingle()
+          
+          return {
+            ...log,
+            profiles: profile ? { full_name: profile.full_name } : null
+          }
+        } catch {
+          return {
+            ...log,
+            profiles: null
+          }
+        }
+      })
+    )
+
     return new Response(
-      JSON.stringify({ logs: logs || [] }),
+      JSON.stringify({ logs: logsWithProfiles }),
       { 
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -105,8 +105,13 @@ export function CommunityPasswordManagement() {
     try {
       console.log('Updating password...');
       
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const { data, error } = await supabase.functions.invoke('update-community-password', {
         body: { password: newPassword },
+        headers: session ? {
+          Authorization: `Bearer ${session.access_token}`,
+        } : {},
       });
 
       if (error) {
