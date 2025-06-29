@@ -53,55 +53,55 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
       <Card className="w-full max-w-md glass-effect shine-animation">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <Shield className="w-12 h-12 text-accent-gold" />
+            <Shield className="w-12 h-12 text-gray-300" />
           </div>
-          <CardTitle className="text-2xl text-gradient">Admin Access</CardTitle>
-          <CardDescription className="text-text-secondary">Enter your admin credentials to continue</CardDescription>
+          <CardTitle className="text-2xl text-white">Admin Access</CardTitle>
+          <CardDescription className="text-gray-400">Enter your admin credentials to continue</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-accent-gold">Username</Label>
+              <Label htmlFor="username" className="text-gray-300">Username</Label>
               <Input
                 id="username"
                 type="text"
                 placeholder="Enter username"
                 value={credentials.username}
                 onChange={(e) => setCredentials(prev => ({ ...prev, username: e.target.value }))}
-                className="bg-card-bg border-gold/20 focus:border-accent-gold text-white"
+                className="bg-card-bg border-gray-600 focus:border-gray-400 text-white placeholder:text-gray-500"
                 required
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-accent-gold">Password</Label>
+              <Label htmlFor="password" className="text-gray-300">Password</Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="Enter password"
                 value={credentials.password}
                 onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
-                className="bg-card-bg border-gold/20 focus:border-accent-gold text-white"
+                className="bg-card-bg border-gray-600 focus:border-gray-400 text-white placeholder:text-gray-500"
                 required
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="masterKey" className="text-accent-gold">Master Key</Label>
+              <Label htmlFor="masterKey" className="text-gray-300">Master Key</Label>
               <Input
                 id="masterKey"
                 type="password"
                 placeholder="Enter master key"
                 value={credentials.masterKey}
                 onChange={(e) => setCredentials(prev => ({ ...prev, masterKey: e.target.value }))}
-                className="bg-card-bg border-gold/20 focus:border-accent-gold text-white"
+                className="bg-card-bg border-gray-600 focus:border-gray-400 text-white placeholder:text-gray-500"
                 required
               />
             </div>
             
             <Button
               type="submit"
-              className="w-full gradient-gold font-semibold btn-animated golden-glow"
+              className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold btn-animated"
               disabled={loading}
             >
               {loading ? 'Authenticating...' : 'Access Admin Panel'}

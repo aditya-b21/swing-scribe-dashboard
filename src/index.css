@@ -5,9 +5,9 @@
 @tailwind utilities;
 
 :root {
-  --primary-gold: #ffd700;
-  --dark-gold: #b8860b;
-  --accent-gold: #ffed4e;
+  --primary-gray: #6b7280;
+  --dark-gray: #4b5563;
+  --accent-gray: #9ca3af;
   --text-primary: #ffffff;
   --text-secondary: #a0aec0;
   --dark-bg: #0a0a0a;
@@ -30,42 +30,42 @@ body {
 .glass-effect {
   background: rgba(42, 42, 42, 0.8);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 215, 0, 0.2);
+  border: 1px solid rgba(107, 114, 128, 0.2);
 }
 
 /* Gradient Text */
 .text-gradient {
-  background: linear-gradient(135deg, var(--primary-gold), var(--accent-gold));
+  background: linear-gradient(135deg, var(--primary-gray), var(--accent-gray));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 /* Button Gradients */
-.gradient-gold {
-  background: linear-gradient(135deg, #ffd700, #ffed4e);
+.gradient-gray {
+  background: linear-gradient(135deg, #6b7280, #9ca3af);
   color: #000000;
   border: none;
   transition: all 0.3s ease;
 }
 
-.gradient-gold:hover {
-  background: linear-gradient(135deg, #ffed4e, #ffd700);
+.gradient-gray:hover {
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
   transform: scale(1.05);
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  box-shadow: 0 0 20px rgba(107, 114, 128, 0.4);
 }
 
 .gradient-dark {
   background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
-  color: #ffd700;
-  border: 1px solid #ffd700;
+  color: #9ca3af;
+  border: 1px solid #6b7280;
   transition: all 0.3s ease;
 }
 
 .gradient-dark:hover {
   background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
   transform: scale(1.05);
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+  box-shadow: 0 0 20px rgba(107, 114, 128, 0.2);
 }
 
 /* Button Animations */
@@ -82,7 +82,7 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(107, 114, 128, 0.2), transparent);
   transition: left 0.5s;
 }
 
@@ -92,7 +92,7 @@ body {
 
 .btn-animated:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(255, 215, 0, 0.2);
+  box-shadow: 0 10px 25px rgba(107, 114, 128, 0.2);
 }
 
 .btn-animated:active {
@@ -100,17 +100,17 @@ body {
   transition: transform 0.1s;
 }
 
-/* Golden Glow Animation */
-.golden-glow {
-  animation: golden-glow 2s infinite;
+/* Gray Glow Animation */
+.gray-glow {
+  animation: gray-glow 2s infinite;
 }
 
-@keyframes golden-glow {
+@keyframes gray-glow {
   0%, 100% {
-    box-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+    box-shadow: 0 0 5px rgba(107, 114, 128, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.3);
+    box-shadow: 0 0 20px rgba(107, 114, 128, 0.6), 0 0 30px rgba(107, 114, 128, 0.3);
   }
 }
 
@@ -127,7 +127,7 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.1), transparent);
+  background: linear-gradient(90deg, transparent, rgba(107, 114, 128, 0.1), transparent);
   animation: shine 3s infinite;
 }
 
@@ -143,7 +143,7 @@ body {
 
 .card-hover:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(255, 215, 0, 0.15);
+  box-shadow: 0 10px 30px rgba(107, 114, 128, 0.15);
 }
 
 /* Theme Colors */
@@ -152,8 +152,8 @@ body {
 .bg-card-bg { background-color: var(--card-bg); }
 .text-text-primary { color: var(--text-primary); }
 .text-text-secondary { color: var(--text-secondary); }
-.text-accent-gold { color: var(--accent-gold); }
-.border-gold { border-color: var(--primary-gold); }
+.text-accent-gray { color: var(--accent-gray); }
+.border-gray { border-color: var(--primary-gray); }
 
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
@@ -165,12 +165,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 215, 0, 0.3);
+  background: rgba(107, 114, 128, 0.3);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 215, 0, 0.5);
+  background: rgba(107, 114, 128, 0.5);
 }
 
 /* Loading Animation */
