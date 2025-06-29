@@ -21,42 +21,74 @@ serve(async (req) => {
     // Get the auth header
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      throw new Error('No authorization header')
+      console.log('No authorization header provided')
+      return new Response(
+        JSON.stringify({ error: 'No authorization header' }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     // Verify the user is authenticated
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    )
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token)
 
     if (userError || !user) {
-      throw new Error('Unauthorized')
+      console.log('User authentication failed:', userError)
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     // Check if user is admin
-    const { data: profile } = await supabaseClient
+    const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('email')
       .eq('id', user.id)
       .single()
 
+    if (profileError) {
+      console.log('Profile fetch error:', profileError)
+      return new Response(
+        JSON.stringify({ error: 'Profile not found' }),
+        { 
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
     const isAdmin = profile?.email === 'admin@swingscribe.com' || profile?.email === 'adityabarod807@gmail.com'
     
     if (!isAdmin) {
-      throw new Error('Admin access required')
+      return new Response(
+        JSON.stringify({ error: 'Admin access required' }),
+        { 
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
-    // Get community access logs with profile information
-    const { data, error } = await supabaseClient
+    // Get access logs with user profiles
+    const { data: logs, error } = await supabaseClient
       .from('community_access_logs')
       .select(`
-        *,
-        profiles (
+        id,
+        user_email,
+        user_id,
+        accessed_at,
+        profiles:user_id (
           full_name
         )
       `)
       .order('accessed_at', { ascending: false })
-      .limit(50)
 
     if (error) {
       console.error('Error fetching access logs:', error)
@@ -70,7 +102,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ logs: data || [] }),
+      JSON.stringify({ logs: logs || [] }),
       { 
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

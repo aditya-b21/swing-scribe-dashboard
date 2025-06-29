@@ -21,36 +21,77 @@ serve(async (req) => {
     // Get the auth header
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      throw new Error('No authorization header')
+      console.log('No authorization header provided')
+      return new Response(
+        JSON.stringify({ error: 'No authorization header' }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     // Verify the user is authenticated
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    )
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token)
 
     if (userError || !user) {
-      throw new Error('Unauthorized')
+      console.log('User authentication failed:', userError)
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
+    console.log('Authenticated user:', user.email)
+
     // Check if user is admin
-    const { data: profile } = await supabaseClient
+    const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('email')
       .eq('id', user.id)
       .single()
 
+    if (profileError) {
+      console.log('Profile fetch error:', profileError)
+      return new Response(
+        JSON.stringify({ error: 'Profile not found' }),
+        { 
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
     const isAdmin = profile?.email === 'admin@swingscribe.com' || profile?.email === 'adityabarod807@gmail.com'
+    console.log('Is admin check:', isAdmin, 'for email:', profile?.email)
     
     if (!isAdmin) {
-      throw new Error('Admin access required')
+      return new Response(
+        JSON.stringify({ error: 'Admin access required' }),
+        { 
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     const { password } = await req.json()
 
     if (!password) {
-      throw new Error('Password is required')
+      return new Response(
+        JSON.stringify({ error: 'Password is required' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
+
+    console.log('Updating community password...')
 
     // Update or insert community password
     const { error } = await supabaseClient
@@ -71,6 +112,8 @@ serve(async (req) => {
         }
       )
     }
+
+    console.log('Password updated successfully')
 
     return new Response(
       JSON.stringify({ success: true }),

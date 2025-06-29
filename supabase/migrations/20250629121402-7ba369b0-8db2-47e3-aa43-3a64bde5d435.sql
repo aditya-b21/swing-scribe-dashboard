@@ -43,7 +43,7 @@ CREATE POLICY "Admin can view all access logs" ON public.community_access_logs
 CREATE POLICY "Users can log their own access" ON public.community_access_logs
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Insert default community password if it doesn't exist
+-- Insert default community password with the requested password
 INSERT INTO public.community_settings (key, password) 
-VALUES ('community_password', 'default123')
-ON CONFLICT (key) DO NOTHING;
+VALUES ('community_password', 'SwingScribe1234@')
+ON CONFLICT (key) DO UPDATE SET password = 'SwingScribe1234@';

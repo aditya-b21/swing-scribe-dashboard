@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Eye, Users, Clock, RefreshCw } from 'lucide-react';
+import { Lock, Eye, Users, Clock, RefreshCw, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -25,6 +25,7 @@ export function CommunityPasswordManagement() {
   const [loading, setLoading] = useState(false);
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
+  const [authError, setAuthError] = useState(false);
 
   useEffect(() => {
     fetchCurrentPassword();
@@ -33,24 +34,54 @@ export function CommunityPasswordManagement() {
 
   const fetchCurrentPassword = async () => {
     try {
+      setAuthError(false);
+      console.log('Fetching current password...');
+      
       const { data, error } = await supabase.functions.invoke('get-community-password');
-      if (error) throw error;
-      setCurrentPassword(data?.password ? '••••••••' : 'Not set');
+      
+      if (error) {
+        console.error('Password fetch error:', error);
+        if (error.message?.includes('Unauthorized') || error.message?.includes('Admin access required')) {
+          setAuthError(true);
+          toast.error('Admin access required. Please ensure you are logged in as an admin.');
+        } else {
+          toast.error('Failed to fetch current password: ' + error.message);
+        }
+        setCurrentPassword('Error loading');
+        return;
+      }
+
+      console.log('Password fetch response:', data);
+      setCurrentPassword(data?.password ? '••••••••••••••••' : 'Not set');
     } catch (error) {
       console.error('Error fetching password:', error);
+      setAuthError(true);
       toast.error('Failed to fetch current password');
+      setCurrentPassword('Error loading');
     }
   };
 
   const fetchAccessLogs = async () => {
     try {
       setLogsLoading(true);
+      console.log('Fetching access logs...');
+      
       const { data, error } = await supabase.functions.invoke('get-community-access-logs');
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Access logs fetch error:', error);
+        if (!error.message?.includes('Unauthorized')) {
+          toast.error('Failed to fetch access logs: ' + error.message);
+        }
+        setAccessLogs([]);
+        return;
+      }
+
+      console.log('Access logs response:', data);
       setAccessLogs(data?.logs || []);
     } catch (error) {
       console.error('Error fetching access logs:', error);
-      toast.error('Failed to fetch access logs');
+      setAccessLogs([]);
     } finally {
       setLogsLoading(false);
     }
@@ -69,14 +100,27 @@ export function CommunityPasswordManagement() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.functions.invoke('update-community-password', {
+      console.log('Updating password...');
+      
+      const { data, error } = await supabase.functions.invoke('update-community-password', {
         body: { password: newPassword }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Password update error:', error);
+        if (error.message?.includes('Unauthorized') || error.message?.includes('Admin access required')) {
+          setAuthError(true);
+          toast.error('Admin access required. Please ensure you are logged in as an admin.');
+        } else {
+          toast.error('Failed to update password: ' + error.message);
+        }
+        return;
+      }
 
+      console.log('Password update response:', data);
       toast.success('Community password updated successfully');
       setNewPassword('');
+      setAuthError(false);
       await fetchCurrentPassword();
     } catch (error) {
       console.error('Error updating password:', error);
@@ -88,6 +132,18 @@ export function CommunityPasswordManagement() {
 
   return (
     <div className="space-y-6 fade-in">
+      {/* Auth Error Banner */}
+      {authError && (
+        <Card className="border-red-500/20 bg-red-500/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 text-red-400">
+              <AlertCircle className="w-5 h-5" />
+              <p>Admin authentication required. Please ensure you are logged in with admin credentials.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Password Management */}
       <Card className="glass-effect shine-animation border-slate-700">
         <CardHeader>
@@ -96,7 +152,7 @@ export function CommunityPasswordManagement() {
             Community Access Password
           </CardTitle>
           <CardDescription className="text-slate-400">
-            Set or update the password required for community access
+            Set or update the password required for community access (Default: SwingScribe1234@)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -110,7 +166,7 @@ export function CommunityPasswordManagement() {
                 className="bg-slate-800 border-slate-600 text-white"
               />
               <Badge variant="outline" className="border-slate-600 text-slate-300">
-                {currentPassword === 'Not set' ? 'Not Set' : 'Active'}
+                {currentPassword === 'Not set' || currentPassword === 'Error loading' ? 'Not Set' : 'Active'}
               </Badge>
             </div>
           </div>
@@ -119,28 +175,40 @@ export function CommunityPasswordManagement() {
             <Label htmlFor="new-password" className="text-slate-300">New Password</Label>
             <Input
               id="new-password"
-              type="password"
-              placeholder="Enter new community password"
+              type="password" 
+              placeholder="Enter new community password (min 6 characters)"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="bg-slate-800 border-slate-600 focus:border-slate-400 text-white"
+              disabled={authError}
             />
           </div>
 
-          <Button
-            onClick={updatePassword}
-            disabled={loading}
-            className="bg-slate-700 hover:bg-slate-600 text-white font-semibold btn-animated btn-glow"
-          >
-            {loading ? (
-              <>
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                Updating...
-              </>
-            ) : (
-              'Update Password'
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={updatePassword}
+              disabled={loading || authError}
+              className="bg-slate-700 hover:bg-slate-600 text-white font-semibold btn-animated btn-glow"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                'Update Password'
+              )}
+            </Button>
+            
+            <Button
+              onClick={fetchCurrentPassword}
+              variant="outline"
+              className="border-slate-600 hover:bg-slate-800 text-slate-300 btn-animated"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
