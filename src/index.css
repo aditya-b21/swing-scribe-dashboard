@@ -14,8 +14,8 @@
     --popover: 17 17 17;
     --popover-foreground: 0 0% 100%;
 
-    --primary: 43 57% 66%;
-    --primary-foreground: 17 17 17;
+    --primary: 120 100% 25%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 17 17 17;
     --secondary-foreground: 0 0% 81%;
@@ -23,17 +23,23 @@
     --muted: 27 27 27;
     --muted-foreground: 0 0% 65%;
 
-    --accent: 43 57% 66%;
-    --accent-foreground: 17 17 17;
+    --accent: 120 100% 25%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
     --border: 27 27 27;
     --input: 27 27 27;
-    --ring: 43 57% 66%;
+    --ring: 120 100% 25%;
 
     --radius: 0.5rem;
+
+    /* Custom colors */
+    --dark-green: #013220;
+    --dark-blue: #002244;
+    --neon-green: #00ff88;
+    --neon-blue: #00aaff;
   }
 
   * {
@@ -42,6 +48,8 @@
 
   body {
     @apply bg-dark-bg text-text-primary font-sans;
+    background: linear-gradient(135deg, var(--dark-green) 0%, var(--dark-blue) 100%);
+    min-height: 100vh;
     overflow-x: hidden;
   }
 
@@ -66,17 +74,22 @@
 
 @layer components {
   .glass-effect {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(1, 50, 32, 0.15);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 255, 136, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 255, 136, 0.1);
   }
 
-  .gradient-gold {
-    background: linear-gradient(135deg, #E4C06D 0%, #F4D03F 100%);
+  .gradient-green {
+    background: linear-gradient(135deg, #013220 0%, #00ff88 100%);
+  }
+
+  .gradient-blue {
+    background: linear-gradient(135deg, #002244 0%, #00aaff 100%);
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, #E4C06D 0%, #F4D03F 100%);
+    background: linear-gradient(135deg, #00ff88 0%, #00aaff 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -89,6 +102,99 @@
 
   .card-hover:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(228, 192, 109, 0.15);
+    box-shadow: 0 8px 25px rgba(0, 255, 136, 0.25);
+  }
+
+  /* Button animations */
+  .btn-animated {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .btn-animated::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  .btn-animated:hover::before {
+    left: 100%;
+  }
+
+  .btn-animated:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(0, 255, 136, 0.3);
+  }
+
+  .btn-animated:active {
+    transform: scale(0.95);
+  }
+
+  /* Shine animation */
+  .shine-animation {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shine-animation::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 136, 0.4), transparent);
+    animation: shine 3s infinite;
+  }
+
+  @keyframes shine {
+    0% { left: -100%; }
+    50% { left: 100%; }
+    100% { left: 100%; }
+  }
+
+  /* Trading animations */
+  .trading-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.1;
+  }
+
+  .candle-animation {
+    animation: candleGlow 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes candleGlow {
+    0% { opacity: 0.3; transform: scaleY(1); }
+    100% { opacity: 0.7; transform: scaleY(1.1); }
+  }
+
+  .ticker-animation {
+    animation: tickerMove 20s linear infinite;
+  }
+
+  @keyframes tickerMove {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+
+  .pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 136, 0.3); }
+    50% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
   }
 }

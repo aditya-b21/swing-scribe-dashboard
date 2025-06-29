@@ -116,6 +116,7 @@ export type Database = {
           email_verified: boolean | null
           full_name: string | null
           id: string
+          is_community_member: boolean | null
           status: string | null
           updated_at: string | null
         }
@@ -127,6 +128,7 @@ export type Database = {
           email_verified?: boolean | null
           full_name?: string | null
           id: string
+          is_community_member?: boolean | null
           status?: string | null
           updated_at?: string | null
         }
@@ -138,6 +140,7 @@ export type Database = {
           email_verified?: boolean | null
           full_name?: string | null
           id?: string
+          is_community_member?: boolean | null
           status?: string | null
           updated_at?: string | null
         }

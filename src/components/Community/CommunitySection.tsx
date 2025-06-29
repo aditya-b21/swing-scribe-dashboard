@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Users, MessageSquare, TrendingUp, HelpCircle, Send, UserPlus, User, Reply, Clock, X } from 'lucide-react';
+import { Users, MessageSquare, TrendingUp, HelpCircle, Send, User, Reply, Mail, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CommunityPost {
@@ -202,14 +201,14 @@ export function CommunitySection() {
   if (profileLoading || loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-gold"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <Card className="glass-effect border-white/20">
+      <Card className="glass-effect border-green-500/20">
         <CardContent className="text-center py-8">
           <p className="text-text-secondary">Please log in to access the community.</p>
         </CardContent>
@@ -217,67 +216,45 @@ export function CommunitySection() {
     );
   }
 
-  // Check community access status
-  const communityRequestStatus = profile.community_request_status;
-  const hasApprovedAccess = communityRequestStatus === 'approved';
-  const hasPendingRequest = communityRequestStatus === 'pending';
-  const hasBeenDenied = communityRequestStatus === 'denied';
-
-  if (!hasApprovedAccess) {
+  // Check if user is a community member
+  if (!profile.is_community_member) {
     return (
-      <Card className="glass-effect border-white/20">
+      <Card className="glass-effect border-green-500/20">
         <CardHeader>
           <CardTitle className="text-2xl text-gradient flex items-center gap-2">
-            <Users className="w-6 h-6" />
+            <Shield className="w-6 h-6" />
             Community Access Required
           </CardTitle>
-          <CardDescription>Join our trading community to share insights and learn from others</CardDescription>
+          <CardDescription>You need admin approval to access the community</CardDescription>
         </CardHeader>
         <CardContent className="text-center py-8">
-          {!communityRequestStatus ? (
-            <div className="space-y-4">
+          <div className="space-y-6">
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-6">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Mail className="w-8 h-8 text-yellow-400" />
+                <span className="text-xl">⚠️</span>
+              </div>
+              <h3 className="text-lg font-semibold text-yellow-400 mb-2">
+                You are not added to the community group yet.
+              </h3>
               <p className="text-text-secondary mb-4">
-                Request access to join our exclusive trading community where you can share charts, ask questions, and discuss strategies with fellow traders.
+                Please email the admin to request access to the trading community.
               </p>
-              <Button
-                onClick={requestCommunityAccess}
-                disabled={requestingAccess}
-                className="gradient-gold text-dark-bg"
-              >
-                {requestingAccess ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-dark-bg mr-2"></div>
-                    Requesting Access...
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Request Community Access
-                  </>
-                )}
-              </Button>
-            </div>
-          ) : hasPendingRequest ? (
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/20 text-yellow-400 rounded-lg">
-                <Clock className="w-4 h-4" />
-                Access Request Pending
+              <div className="bg-dark-bg/50 rounded-lg p-3 border border-green-500/20">
+                <p className="text-green-400 font-mono">📩 adityabarod807@gmail.com</p>
               </div>
-              <p className="text-text-secondary">
-                Your community access request is being reviewed by our admin team. You'll be notified once approved.
-              </p>
             </div>
-          ) : hasBeenDenied ? (
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg">
-                <X className="w-4 h-4" />
-                Request Denied
-              </div>
-              <p className="text-text-secondary">
-                Your community access request has been denied. Please contact support if you believe this is an error.
-              </p>
+            
+            <div className="text-sm text-text-secondary">
+              <p>Once approved by the admin, you'll be able to:</p>
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Share trading insights and analysis</li>
+                <li>Ask questions to experienced traders</li>
+                <li>Participate in community discussions</li>
+                <li>Access exclusive trading content</li>
+              </ul>
             </div>
-          ) : null}
+          </div>
         </CardContent>
       </Card>
     );
@@ -285,7 +262,7 @@ export function CommunitySection() {
 
   return (
     <div className="space-y-6">
-      <Card className="glass-effect border-white/20">
+      <Card className="glass-effect border-green-500/20 shine-animation">
         <CardHeader>
           <CardTitle className="text-2xl text-gradient flex items-center gap-2">
             <Users className="w-6 h-6" />
@@ -303,7 +280,7 @@ export function CommunitySection() {
                 placeholder="What's on your mind?"
                 value={newPost.title}
                 onChange={(e) => setNewPost(prev => ({ ...prev, title: e.target.value }))}
-                className="bg-white/5 border-white/20"
+                className="bg-white/5 border-green-500/20 focus:border-green-400 btn-animated"
                 required
               />
             </div>
@@ -315,14 +292,14 @@ export function CommunitySection() {
                 placeholder="Share your thoughts, analysis, or questions..."
                 value={newPost.content}
                 onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
-                className="bg-white/5 border-white/20 min-h-[100px]"
+                className="bg-white/5 border-green-500/20 focus:border-green-400 min-h-[100px]"
                 required
               />
             </div>
             
             <div className="flex justify-between items-center">
               <Select value={newPost.post_type} onValueChange={(value: 'discussion' | 'analysis' | 'question') => setNewPost(prev => ({ ...prev, post_type: value }))}>
-                <SelectTrigger className="w-48 bg-white/5 border-white/20">
+                <SelectTrigger className="w-48 bg-white/5 border-green-500/20">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -332,10 +309,10 @@ export function CommunitySection() {
                 </SelectContent>
               </Select>
               
-              <Button type="submit" disabled={submitting} className="gradient-gold text-dark-bg">
+              <Button type="submit" disabled={submitting} className="gradient-green text-white btn-animated pulse-glow">
                 {submitting ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-dark-bg mr-2"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Posting...
                   </>
                 ) : (
@@ -353,7 +330,7 @@ export function CommunitySection() {
       {/* Posts Display */}
       <div className="space-y-4">
         {posts.length === 0 ? (
-          <Card className="glass-effect border-white/20">
+          <Card className="glass-effect border-green-500/20">
             <CardContent className="text-center py-8">
               <MessageSquare className="w-12 h-12 text-text-secondary mx-auto mb-4" />
               <p className="text-text-secondary">No posts yet. Be the first to start a discussion!</p>
@@ -361,17 +338,17 @@ export function CommunitySection() {
           </Card>
         ) : (
           posts.map((post) => (
-            <Card key={post.id} className="glass-effect border-white/20">
+            <Card key={post.id} className="glass-effect border-green-500/20 card-hover">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 bg-gradient-to-r from-accent-gold to-yellow-600 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-dark-bg" />
+                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-white" />
                   </div>
                   
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="font-semibold text-white">Anonymous Trader</span>
-                      <Badge className="text-xs">{post.post_type}</Badge>
+                      <Badge className="text-xs bg-green-500/20 text-green-400 border-green-500/30">{post.post_type}</Badge>
                       <span className="text-text-secondary text-sm">
                         {new Date(post.created_at).toLocaleDateString()}
                       </span>
@@ -385,16 +362,16 @@ export function CommunitySection() {
                         <img 
                           src={post.image_url} 
                           alt="Post attachment" 
-                          className="max-w-full h-auto rounded-lg border border-white/10"
+                          className="max-w-full h-auto rounded-lg border border-green-500/20"
                         />
                       </div>
                     )}
                     
                     {/* Replies */}
                     {post.replies && post.replies.length > 0 && (
-                      <div className="mt-4 pl-4 border-l-2 border-white/10 space-y-3">
+                      <div className="mt-4 pl-4 border-l-2 border-green-500/20 space-y-3">
                         {post.replies.map((reply) => (
-                          <div key={reply.id} className="bg-white/5 rounded-lg p-3">
+                          <div key={reply.id} className="bg-white/5 rounded-lg p-3 border border-green-500/10">
                             <div className="flex items-center gap-2 mb-2">
                               <span className="font-medium text-white text-sm">Anonymous Trader</span>
                               <span className="text-text-secondary text-xs">
@@ -416,10 +393,10 @@ export function CommunitySection() {
                         placeholder="Write a reply..."
                         value={newReply[post.id] || ''}
                         onChange={(e) => setNewReply(prev => ({ ...prev, [post.id]: e.target.value }))}
-                        className="bg-white/5 border-white/20 flex-1"
+                        className="bg-white/5 border-green-500/20 focus:border-green-400 flex-1"
                         required
                       />
-                      <Button type="submit" size="sm" className="gradient-gold text-dark-bg">
+                      <Button type="submit" size="sm" className="gradient-green text-white btn-animated">
                         <Reply className="w-4 h-4" />
                       </Button>
                     </form>

@@ -9,6 +9,7 @@ import { AuthPage } from "@/components/Auth/AuthPage";
 import { Navbar } from "@/components/Layout/Navbar";
 import { DashboardTabs } from "@/components/Dashboard/DashboardTabs";
 import { AdminPanel } from "@/components/Admin/AdminPanel";
+import { TradingBackground } from "@/components/TradingBackground";
 
 const queryClient = new QueryClient();
 
@@ -17,8 +18,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-dark-bg flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-gold"></div>
+      <div className="min-h-screen bg-gradient-to-br from-green-900/20 to-blue-900/20 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>
       </div>
     );
   }
@@ -35,14 +36,16 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-dark-bg flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-gold"></div>
+      <div className="min-h-screen bg-gradient-to-br from-green-900/20 to-blue-900/20 flex items-center justify-center">
+        <TradingBackground />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400"></div>
       </div>
     );
   }
 
   return (
     <BrowserRouter>
+      <TradingBackground />
       <Routes>
         <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
         <Route path="/admin" element={<AdminPanel />} />
@@ -50,7 +53,7 @@ function AppContent() {
           path="/"
           element={
             <ProtectedRoute>
-              <div className="min-h-screen bg-dark-bg">
+              <div className="min-h-screen bg-gradient-to-br from-green-900/20 to-blue-900/20">
                 <Navbar />
                 <DashboardTabs />
               </div>

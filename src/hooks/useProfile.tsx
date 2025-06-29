@@ -11,6 +11,7 @@ interface Profile {
   admin_approved: boolean;
   status: 'pending' | 'approved' | 'rejected';
   community_request_status?: 'pending' | 'approved' | 'denied' | null;
+  is_community_member: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -75,6 +76,7 @@ export function useProfile() {
           admin_approved: data.admin_approved || false,
           status: (data.status || 'pending') as 'pending' | 'approved' | 'rejected',
           community_request_status: data.community_request_status as 'pending' | 'approved' | 'denied' | null,
+          is_community_member: data.is_community_member || false,
           created_at: data.created_at || new Date().toISOString(),
           updated_at: data.updated_at || new Date().toISOString()
         };
@@ -90,7 +92,8 @@ export function useProfile() {
             id: user.id,
             email: user.email || '',
             status: 'pending',
-            community_request_status: null
+            community_request_status: null,
+            is_community_member: false
           })
           .select()
           .single();
@@ -108,6 +111,7 @@ export function useProfile() {
           admin_approved: newProfile.admin_approved || false,
           status: (newProfile.status || 'pending') as 'pending' | 'approved' | 'rejected',
           community_request_status: newProfile.community_request_status as 'pending' | 'approved' | 'denied' | null,
+          is_community_member: newProfile.is_community_member || false,
           created_at: newProfile.created_at || new Date().toISOString(),
           updated_at: newProfile.updated_at || new Date().toISOString()
         };

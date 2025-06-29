@@ -1,316 +1,175 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, User, Mail, Lock } from 'lucide-react';
+import { Mail, Lock, User, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { TradingBackground } from '@/components/TradingBackground';
 
 export function AuthPage() {
-  const navigate = useNavigate();
   const { signIn, signUp } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  // Regular user auth state
-  const [userForm, setUserForm] = useState({
+  const [formData, setFormData] = useState({
     email: '',
     password: '',
-    confirmPassword: ''
+    fullName: ''
   });
 
-  // Admin auth state
-  const [adminForm, setAdminForm] = useState({
-    username: '',
-    password: '',
-    masterKey: ''
-  });
-
-  const handleUserSignIn = async (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-
     try {
-      const { error } = await signIn(userForm.email, userForm.password);
-      
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          setError('Invalid email or password. Please check your credentials.');
-        } else if (error.message.includes('Email not confirmed')) {
-          setError('Please check your email and click the confirmation link before signing in.');
-        } else {
-          setError(error.message);
-        }
-      } else {
-        toast.success('Signed in successfully!');
-        navigate('/');
-      }
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      setLoading(true);
+      await signIn(formData.email, formData.password);
+      toast.success('Welcome back!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to sign in');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUserSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    if (userForm.password !== userForm.confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
-
-    if (userForm.password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      setLoading(false);
-      return;
-    }
-
     try {
-      const { error } = await signUp(userForm.email, userForm.password);
-      
-      if (error) {
-        if (error.message.includes('User already registered')) {
-          setError('An account with this email already exists. Please sign in instead.');
-        } else {
-          setError(error.message);
-        }
-      } else {
-        toast.success('Account created! Please check your email to confirm your account.');
-        setUserForm({ email: '', password: '', confirmPassword: '' });
-      }
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      setLoading(true);
+      await signUp(formData.email, formData.password, formData.fullName);
+      toast.success('Account created successfully! Please check your email for verification.');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to sign up');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleAdminLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    // Check admin credentials (credentials are hardcoded for security)
-    if (
-      adminForm.username === 'admin' &&
-      adminForm.password === 'SwingScribe2024!' &&
-      adminForm.masterKey === 'SWING_ADMIN_2024'
-    ) {
-      localStorage.setItem('admin_authenticated', 'true');
-      toast.success('Admin login successful!');
-      navigate('/admin');
-    } else {
-      setError('Invalid admin credentials.');
-    }
-    
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-dark-bg flex flex-col items-center justify-center p-4">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-gradient mb-2">SwingScribe</h1>
-        <p className="text-text-secondary">Professional Trading Journal & Community</p>
-      </div>
-
-      <Card className="w-full max-w-md glass-effect border-white/20">
+    <div className="min-h-screen bg-gradient-to-br from-green-900/20 to-blue-900/20 flex items-center justify-center p-4">
+      <TradingBackground />
+      <Card className="w-full max-w-md glass-effect border-green-500/20 shine-animation">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl text-gradient">Welcome Back</CardTitle>
-          <CardDescription>Sign in to your account or join our community</CardDescription>
+          <div className="flex justify-center mb-4">
+            <TrendingUp className="w-12 h-12 text-green-400" />
+          </div>
+          <CardTitle className="text-2xl text-gradient">SwingScribe</CardTitle>
+          <CardDescription>Your Trading Journal & Community</CardDescription>
         </CardHeader>
         
         <CardContent>
-          <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-white/5">
-              <TabsTrigger value="signin" className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                Sign In
-              </TabsTrigger>
-              <TabsTrigger value="signup" className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                Sign Up
-              </TabsTrigger>
-              <TabsTrigger value="admin" className="flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                Admin
-              </TabsTrigger>
+          <Tabs defaultValue="signin" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2 bg-white/5 border border-green-500/10">
+              <TabsTrigger value="signin" className="btn-animated">Sign In</TabsTrigger>
+              <TabsTrigger value="signup" className="btn-animated">Sign Up</TabsTrigger>
             </TabsList>
-
-            {error && (
-              <Alert className="mt-4 border-red-500/20 bg-red-500/10">
-                <AlertDescription className="text-red-400">{error}</AlertDescription>
-              </Alert>
-            )}
-
+            
             <TabsContent value="signin">
-              <form onSubmit={handleUserSignIn} className="space-y-4">
+              <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={userForm.email}
-                    onChange={(e) => setUserForm(prev => ({ ...prev, email: e.target.value }))}
-                    className="bg-white/5 border-white/20"
-                    required
-                  />
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 w-4 h-4 text-green-400" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      value={formData.email}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      className="bg-white/5 border-green-500/20 pl-10 focus:border-green-400"
+                      required
+                    />
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={userForm.password}
-                    onChange={(e) => setUserForm(prev => ({ ...prev, password: e.target.value }))}
-                    className="bg-white/5 border-white/20"
-                    required
-                  />
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 w-4 h-4 text-green-400" />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Enter your password"
+                      value={formData.password}
+                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                      className="bg-white/5 border-green-500/20 pl-10 focus:border-green-400"
+                      required
+                    />
+                  </div>
                 </div>
                 
-                <Button 
-                  type="submit" 
-                  className="w-full gradient-gold text-dark-bg"
+                <Button
+                  type="submit"
+                  className="w-full gradient-green text-white font-semibold btn-animated pulse-glow"
                   disabled={loading}
                 >
                   {loading ? 'Signing In...' : 'Sign In'}
                 </Button>
               </form>
             </TabsContent>
-
+            
             <TabsContent value="signup">
-              <form onSubmit={handleUserSignUp} className="space-y-4">
+              <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 w-4 h-4 text-green-400" />
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="Enter your full name"
+                      value={formData.fullName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                      className="bg-white/5 border-green-500/20 pl-10 focus:border-green-400"
+                      required
+                    />
+                  </div>
+                </div>
+                
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={userForm.email}
-                    onChange={(e) => setUserForm(prev => ({ ...prev, email: e.target.value }))}
-                    className="bg-white/5 border-white/20"
-                    required
-                  />
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 w-4 h-4 text-green-400" />
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="Enter your email"
+                      value={formData.email}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      className="bg-white/5 border-green-500/20 pl-10 focus:border-green-400"
+                      required
+                    />
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="Create a password (min. 6 characters)"
-                    value={userForm.password}
-                    onChange={(e) => setUserForm(prev => ({ ...prev, password: e.target.value }))}
-                    className="bg-white/5 border-white/20"
-                    required
-                    minLength={6}
-                  />
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 w-4 h-4 text-green-400" />
+                    <Input
+                      id="signup-password"
+                      type="password"
+                      placeholder="Create a password"
+                      value={formData.password}
+                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                      className="bg-white/5 border-green-500/20 pl-10 focus:border-green-400"
+                      required
+                    />
+                  </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm Password</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    placeholder="Confirm your password"
-                    value={userForm.confirmPassword}
-                    onChange={(e) => setUserForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    className="bg-white/5 border-white/20"
-                    required
-                  />
-                </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full gradient-gold text-dark-bg"
+                <Button
+                  type="submit"
+                  className="w-full gradient-blue text-white font-semibold btn-animated pulse-glow"
                   disabled={loading}
                 >
                   {loading ? 'Creating Account...' : 'Create Account'}
                 </Button>
               </form>
             </TabsContent>
-
-            <TabsContent value="admin">
-              <form onSubmit={handleAdminLogin} className="space-y-4">
-                <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                  <h4 className="text-sm font-semibold text-blue-400 mb-2 flex items-center gap-2">
-                    <Shield className="w-4 h-4" />
-                    Admin Access Required
-                  </h4>
-                  <p className="text-xs text-blue-300">
-                    Enter your admin credentials to access the administration panel.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="admin-username">Username</Label>
-                  <Input
-                    id="admin-username"
-                    type="text"
-                    placeholder="Enter admin username"
-                    value={adminForm.username}
-                    onChange={(e) => setAdminForm(prev => ({ ...prev, username: e.target.value }))}
-                    className="bg-white/5 border-white/20"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="admin-password">Password</Label>
-                  <Input
-                    id="admin-password"
-                    type="password"
-                    placeholder="Enter admin password"
-                    value={adminForm.password}
-                    onChange={(e) => setAdminForm(prev => ({ ...prev, password: e.target.value }))}
-                    className="bg-white/5 border-white/20"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="master-key">Master Key</Label>
-                  <Input
-                    id="master-key"
-                    type="password"
-                    placeholder="Enter master key"
-                    value={adminForm.masterKey}
-                    onChange={(e) => setAdminForm(prev => ({ ...prev, masterKey: e.target.value }))}
-                    className="bg-white/5 border-white/20"
-                    required
-                  />
-                </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  disabled={loading}
-                >
-                  <Shield className="w-4 h-4 mr-2" />
-                  {loading ? 'Authenticating...' : 'Admin Login'}
-                </Button>
-              </form>
-            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
-
-      <div className="mt-6 text-center text-sm text-text-secondary">
-        <p>Join thousands of traders improving their performance</p>
-      </div>
     </div>
   );
 }
