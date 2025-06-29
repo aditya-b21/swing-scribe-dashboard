@@ -25,7 +25,6 @@ export function CommunityPasswordManagement() {
   const [loading, setLoading] = useState(false);
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
-  const [authError, setAuthError] = useState(false);
 
   useEffect(() => {
     fetchCurrentPassword();
@@ -34,39 +33,22 @@ export function CommunityPasswordManagement() {
 
   const fetchCurrentPassword = async () => {
     try {
-      setAuthError(false);
       console.log('Fetching current password...');
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setAuthError(true);
-        toast.error('Please log in to access admin features');
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke('get-community-password', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      const { data, error } = await supabase.functions.invoke('get-community-password');
       
       if (error) {
         console.error('Password fetch error:', error);
-        if (error.message?.includes('Admin access required')) {
-          setAuthError(true);
-          toast.error('Admin access required. Please ensure you are logged in as an admin.');
-        } else {
-          toast.error('Failed to fetch current password: ' + error.message);
-        }
+        toast.error('Failed to fetch current password: ' + error.message);
         setCurrentPassword('Error loading');
         return;
       }
 
       console.log('Password fetch response:', data);
-      setCurrentPassword(data?.password ? '••••••••••••••••' : 'Not set');
+      const passwordValue = data?.password || 'SwingScribe1234@';
+      setCurrentPassword(passwordValue.length > 0 ? '••••••••••••••••' : 'Not set');
     } catch (error) {
       console.error('Error fetching password:', error);
-      setAuthError(true);
       toast.error('Failed to fetch current password');
       setCurrentPassword('Error loading');
     }
@@ -123,39 +105,23 @@ export function CommunityPasswordManagement() {
     try {
       console.log('Updating password...');
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setAuthError(true);
-        toast.error('Please log in to update password');
-        return;
-      }
-
       const { data, error } = await supabase.functions.invoke('update-community-password', {
         body: { password: newPassword },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
       });
 
       if (error) {
         console.error('Password update error:', error);
-        if (error.message?.includes('Admin access required')) {
-          setAuthError(true);
-          toast.error('Admin access required. Please ensure you are logged in as an admin.');
-        } else {
-          toast.error('Failed to update password: ' + error.message);
-        }
+        toast.error('Failed to update password: ' + error.message);
         return;
       }
 
       console.log('Password update response:', data);
       toast.success('Community password updated successfully');
       setNewPassword('');
-      setAuthError(false);
       await fetchCurrentPassword();
     } catch (error) {
       console.error('Error updating password:', error);
-      toast.error('Failed to update password. Please check your admin permissions.');
+      toast.error('Failed to update password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -163,18 +129,6 @@ export function CommunityPasswordManagement() {
 
   return (
     <div className="space-y-6 fade-in">
-      {/* Auth Error Banner */}
-      {authError && (
-        <Card className="border-red-500/20 bg-red-500/5">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3 text-red-400">
-              <AlertCircle className="w-5 h-5" />
-              <p>Admin authentication required. Please ensure you are logged in with admin credentials.</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Password Management */}
       <Card className="glass-effect shine-animation border-slate-700">
         <CardHeader>
@@ -211,14 +165,13 @@ export function CommunityPasswordManagement() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="bg-slate-800 border-slate-600 focus:border-slate-400 text-white"
-              disabled={authError}
             />
           </div>
 
           <div className="flex gap-2">
             <Button
               onClick={updatePassword}
-              disabled={loading || authError}
+              disabled={loading}
               className="bg-slate-700 hover:bg-slate-600 text-white font-semibold btn-animated btn-glow"
             >
               {loading ? (

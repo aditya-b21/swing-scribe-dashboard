@@ -24,6 +24,8 @@ serve(async (req) => {
       throw new Error('Password is required')
     }
 
+    console.log('Verifying community password...')
+
     // Get community password from settings
     const { data, error } = await supabaseClient
       .from('community_settings')
@@ -42,7 +44,11 @@ serve(async (req) => {
       )
     }
 
-    const isValid = data?.password === password
+    // If no password is set in DB, use default
+    const storedPassword = data?.password || 'SwingScribe1234@'
+    const isValid = storedPassword === password
+
+    console.log('Password verification result:', isValid)
 
     return new Response(
       JSON.stringify({ valid: isValid }),

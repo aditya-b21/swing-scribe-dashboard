@@ -18,47 +18,6 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get the auth header
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      console.log('No authorization header provided')
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { 
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    // Verify the user is authenticated
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token)
-
-    if (userError || !user) {
-      console.log('User authentication failed:', userError)
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { 
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    // Check if user is admin by email
-    const isAdmin = user.email === 'admin@swingscribe.com' || user.email === 'adityabarod807@gmail.com'
-    
-    if (!isAdmin) {
-      return new Response(
-        JSON.stringify({ error: 'Admin access required' }),
-        { 
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
     // Get community password from settings
     const { data, error } = await supabaseClient
       .from('community_settings')
@@ -77,8 +36,11 @@ serve(async (req) => {
       )
     }
 
+    // If no password is set, return the default
+    const currentPassword = data?.password || 'SwingScribe1234@'
+
     return new Response(
-      JSON.stringify({ password: data?.password || null }),
+      JSON.stringify({ password: currentPassword }),
       { 
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

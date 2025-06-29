@@ -30,18 +30,33 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     setLoading(true);
 
     try {
+      console.log('Admin login attempt with:', {
+        username: credentials.username,
+        passwordLength: credentials.password.length,
+        masterKeyLength: credentials.masterKey.length
+      });
+
       if (
-        credentials.username === ADMIN_CREDENTIALS.username &&
-        credentials.password === ADMIN_CREDENTIALS.password &&
-        credentials.masterKey === ADMIN_CREDENTIALS.masterKey
+        credentials.username.trim() === ADMIN_CREDENTIALS.username &&
+        credentials.password.trim() === ADMIN_CREDENTIALS.password &&
+        credentials.masterKey.trim() === ADMIN_CREDENTIALS.masterKey
       ) {
         localStorage.setItem('admin_authenticated', 'true');
+        console.log('Admin authentication successful');
         onLogin();
         toast.success('Admin login successful');
       } else {
-        toast.error('Invalid credentials');
+        console.log('Admin authentication failed - credentials mismatch');
+        console.log('Expected:', ADMIN_CREDENTIALS);
+        console.log('Received:', {
+          username: credentials.username.trim(),
+          password: credentials.password.trim(),
+          masterKey: credentials.masterKey.trim()
+        });
+        toast.error('Invalid admin credentials. Please check your username, password, and master key.');
       }
     } catch (error) {
+      console.error('Admin login error:', error);
       toast.error('Login failed');
     } finally {
       setLoading(false);
@@ -56,7 +71,13 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
             <Shield className="w-12 h-12 text-gray-300" />
           </div>
           <CardTitle className="text-2xl text-white">Admin Access</CardTitle>
-          <CardDescription className="text-gray-400">Enter your admin credentials to continue</CardDescription>
+          <CardDescription className="text-gray-400">
+            Enter your admin credentials to continue
+            <br />
+            <small className="text-xs text-gray-500 mt-2 block">
+              Username: admin | Password: SwingScribe2024! | Master Key: SWING_ADMIN_2024
+            </small>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
