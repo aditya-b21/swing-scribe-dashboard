@@ -1,13 +1,23 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile } from '@/types/profile';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Check, X, Clock } from 'lucide-react';
+import { Users, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface Profile {
+  id: string;
+  email: string;
+  full_name?: string;
+  email_verified: boolean;
+  admin_approved: boolean;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  updated_at: string;
+}
 
 export function UserManagement() {
   const [users, setUsers] = useState<Profile[]>([]);
@@ -21,7 +31,7 @@ export function UserManagement() {
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('profiles' as any)
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -38,7 +48,7 @@ export function UserManagement() {
   const updateUserStatus = async (userId: string, status: 'approved' | 'rejected') => {
     try {
       const { error } = await supabase
-        .from('profiles')
+        .from('profiles' as any)
         .update({ 
           status,
           admin_approved: status === 'approved',

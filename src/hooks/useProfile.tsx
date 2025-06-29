@@ -2,7 +2,17 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile } from '@/types/profile';
+
+interface Profile {
+  id: string;
+  email: string;
+  full_name?: string;
+  email_verified: boolean;
+  admin_approved: boolean;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  updated_at: string;
+}
 
 export function useProfile() {
   const { user } = useAuth();
@@ -23,7 +33,7 @@ export function useProfile() {
     
     try {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('profiles' as any)
         .select('*')
         .eq('id', user.id)
         .single();
@@ -46,7 +56,7 @@ export function useProfile() {
 
     try {
       const { error } = await supabase
-        .from('profiles')
+        .from('profiles' as any)
         .update(updates)
         .eq('id', user.id);
 

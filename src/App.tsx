@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { AuthPage } from "@/components/Auth/AuthPage";
 import { Navbar } from "@/components/Layout/Navbar";
 import { DashboardTabs } from "@/components/Dashboard/DashboardTabs";
+import { AdminPanel } from "@/components/Admin/AdminPanel";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ function AppContent() {
     <BrowserRouter>
       <Routes>
         <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
+        <Route path="/admin" element={<AdminPanel />} />
         <Route
           path="/"
           element={

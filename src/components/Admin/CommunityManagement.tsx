@@ -1,12 +1,24 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { CommunityPost } from '@/types/profile';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MessageSquare, Pin, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface CommunityPost {
+  id: string;
+  user_id: string;
+  title?: string;
+  content?: string;
+  image_url?: string;
+  post_type: 'discussion' | 'chart' | 'announcement';
+  is_pinned: boolean;
+  created_at: string;
+  updated_at: string;
+  user_profile?: any;
+}
 
 export function CommunityManagement() {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -19,7 +31,7 @@ export function CommunityManagement() {
   const fetchPosts = async () => {
     try {
       const { data, error } = await supabase
-        .from('community_posts')
+        .from('community_posts' as any)
         .select(`
           *,
           user_profile:profiles(*)
@@ -39,7 +51,7 @@ export function CommunityManagement() {
   const togglePin = async (postId: string, currentPinned: boolean) => {
     try {
       const { error } = await supabase
-        .from('community_posts')
+        .from('community_posts' as any)
         .update({ is_pinned: !currentPinned })
         .eq('id', postId);
 
@@ -58,7 +70,7 @@ export function CommunityManagement() {
 
     try {
       const { error } = await supabase
-        .from('community_posts')
+        .from('community_posts' as any)
         .delete()
         .eq('id', postId);
 
