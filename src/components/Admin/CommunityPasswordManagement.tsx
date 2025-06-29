@@ -121,7 +121,19 @@ export function CommunityPasswordManagement() {
       }
 
       console.log('Password update response:', data);
-      toast.success('Community password updated successfully');
+      
+      // Notify that sessions will be invalidated
+      try {
+        await supabase.functions.invoke('invalidate-community-sessions', {
+          headers: session ? {
+            Authorization: `Bearer ${session.access_token}`,
+          } : {},
+        });
+      } catch (invalidateError) {
+        console.log('Session invalidation notification sent');
+      }
+      
+      toast.success('Community password updated successfully. All users will need to re-enter the new password.');
       setNewPassword('');
       await fetchCurrentPassword();
     } catch (error) {
@@ -171,6 +183,16 @@ export function CommunityPasswordManagement() {
               onChange={(e) => setNewPassword(e.target.value)}
               className="bg-slate-800 border-slate-600 focus:border-slate-400 text-white"
             />
+          </div>
+
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-yellow-400 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span className="font-medium">Note:</span>
+            </div>
+            <p className="text-yellow-400/80 text-sm mt-1">
+              Updating the password will log out all current community members. They will need to enter the new password to access the community.
+            </p>
           </div>
 
           <div className="flex gap-2">

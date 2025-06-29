@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Users, Send, Pin, Upload } from 'lucide-react';
+import { MessageSquare, Users, Send, Pin, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { CommunityPasswordPrompt } from './CommunityPasswordPrompt';
 
@@ -32,17 +32,14 @@ export function CommunitySection() {
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
   const [newPost, setNewPost] = useState({ title: '', content: '', post_type: 'discussion' });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingPost, setUploadingPost] = useState(false);
 
-  // Check if user has community access for this session
+  // Check community access and validate password freshness
   useEffect(() => {
-    const communityAccess = sessionStorage.getItem('community_access');
-    if (communityAccess === 'granted') {
-      setHasAccess(true);
-      fetchPosts();
-    } else {
-      setLoading(false);
-    }
-  }, []);
+    checkCommunityAccess();
+  }, [user]);
 
   // Set up real-time subscription when user has access
   useEffect(() => {
@@ -64,9 +61,54 @@ export function CommunitySection() {
     };
   }, [hasAccess]);
 
+  const checkCommunityAccess = async () => {
+    try {
+      const communityAccess = sessionStorage.getItem('community_access');
+      const accessTimestamp = sessionStorage.getItem('community_access_time');
+      const accessPassword = sessionStorage.getItem('community_password');
+      
+      if (communityAccess === 'granted' && accessTimestamp && accessPassword) {
+        // Check if access is still valid (within 24 hours and password hasn't changed)
+        const accessTime = parseInt(accessTimestamp);
+        const currentTime = Date.now();
+        const twentyFourHours = 24 * 60 * 60 * 1000;
+        
+        if (currentTime - accessTime < twentyFourHours) {
+          // Verify the stored password is still valid
+          const { data } = await supabase.functions.invoke('verify-community-password', {
+            body: { password: accessPassword }
+          });
+          
+          if (data?.valid) {
+            setHasAccess(true);
+            fetchPosts();
+          } else {
+            // Password changed, clear session
+            clearCommunitySession();
+          }
+        } else {
+          // Session expired
+          clearCommunitySession();
+        }
+      } else {
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Error checking community access:', error);
+      clearCommunitySession();
+    }
+  };
+
+  const clearCommunitySession = () => {
+    sessionStorage.removeItem('community_access');
+    sessionStorage.removeItem('community_access_time');
+    sessionStorage.removeItem('community_password');
+    setHasAccess(false);
+    setLoading(false);
+  };
+
   const verifyPassword = async (password: string): Promise<boolean> => {
     try {
-      // Call edge function to verify password
       const { data, error } = await supabase.functions.invoke('verify-community-password', {
         body: { password }
       });
@@ -87,8 +129,12 @@ export function CommunitySection() {
           });
         }
 
+        // Set session with timestamp and password
         setHasAccess(true);
         sessionStorage.setItem('community_access', 'granted');
+        sessionStorage.setItem('community_access_time', Date.now().toString());
+        sessionStorage.setItem('community_password', password);
+        
         fetchPosts();
         toast.success('Welcome to the community!');
         return true;
@@ -104,36 +150,70 @@ export function CommunitySection() {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      // First get the posts
+      
+      // Get posts with user profiles
       const { data: postsData, error: postsError } = await supabase
         .from('community_posts')
-        .select('*')
+        .select(`
+          *,
+          profiles:user_id (
+            full_name,
+            email
+          )
+        `)
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
 
-      if (postsError) throw postsError;
+      if (postsError) {
+        console.error('Posts fetch error:', postsError);
+        throw postsError;
+      }
 
-      // Then get the profiles for each post
-      const userIds = postsData?.map(post => post.user_id).filter(Boolean) || [];
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .in('id', userIds);
-
-      if (profilesError) throw profilesError;
-
-      // Combine the data
-      const postsWithProfiles = postsData?.map(post => ({
-        ...post,
-        profiles: profilesData?.find(profile => profile.id === post.user_id) || null
-      })) || [];
-
-      setPosts(postsWithProfiles);
+      setPosts(postsData || []);
     } catch (error) {
       console.error('Error fetching posts:', error);
       toast.error('Failed to load community posts');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error('Image size must be less than 5MB');
+        return;
+      }
+      
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onload = (e) => setImagePreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `community-images/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('community-uploads')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('community-uploads')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Failed to upload image');
+      return null;
     }
   };
 
@@ -143,25 +223,57 @@ export function CommunitySection() {
       return;
     }
 
+    if (!user) {
+      toast.error('You must be logged in to create posts');
+      return;
+    }
+
+    setUploadingPost(true);
     try {
+      let imageUrl = null;
+      
+      // Upload image if selected
+      if (selectedImage) {
+        imageUrl = await uploadImage(selectedImage);
+        if (!imageUrl) {
+          setUploadingPost(false);
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from('community_posts')
         .insert({
-          title: newPost.title,
-          content: newPost.content,
+          title: newPost.title.trim(),
+          content: newPost.content.trim(),
           post_type: newPost.post_type,
-          user_id: user?.id
+          user_id: user.id,
+          image_url: imageUrl,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Post creation error:', error);
+        throw error;
+      }
 
       setNewPost({ title: '', content: '', post_type: 'discussion' });
+      setSelectedImage(null);
+      setImagePreview(null);
       toast.success('Post created successfully!');
       await fetchPosts();
     } catch (error) {
       console.error('Error creating post:', error);
-      toast.error('Failed to create post');
+      toast.error('Failed to create post. Please try again.');
+    } finally {
+      setUploadingPost(false);
     }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
   };
 
   // Show password prompt if user doesn't have access
@@ -216,6 +328,26 @@ export function CommunitySection() {
             onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
             className="bg-slate-800 border-slate-600 focus:border-slate-400 min-h-[100px] text-white"
           />
+          
+          {/* Image Preview */}
+          {imagePreview && (
+            <div className="relative">
+              <img 
+                src={imagePreview} 
+                alt="Preview" 
+                className="max-w-full h-48 object-cover rounded-lg border border-slate-600"
+              />
+              <Button
+                onClick={removeImage}
+                variant="destructive"
+                size="sm"
+                className="absolute top-2 right-2"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+          
           <div className="flex justify-between items-center">
             <select
               value={newPost.post_type}
@@ -229,19 +361,38 @@ export function CommunitySection() {
               <option value="chart">Chart Share</option>
             </select>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="border-slate-600 hover:bg-slate-800 text-slate-300 btn-animated"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Upload Chart
-              </Button>
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  className="border-slate-600 hover:bg-slate-800 text-slate-300 btn-animated"
+                  type="button"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Chart
+                </Button>
+              </label>
               <Button
                 onClick={createPost}
+                disabled={uploadingPost}
                 className="gradient-slate font-semibold btn-animated btn-glow"
               >
-                <Send className="w-4 h-4 mr-2" />
-                Post
+                {uploadingPost ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Posting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Post
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -270,7 +421,7 @@ export function CommunitySection() {
                     <div className="flex items-center gap-2 text-sm text-slate-400">
                       <span>{post.profiles?.full_name || post.profiles?.email || 'Unknown User'}</span>
                       <span>•</span>
-                      <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                      <span>{new Date(post.created_at).toLocaleString()}</span>
                       <Badge variant="outline" className="text-xs border-slate-600 text-slate-300">
                         {post.post_type}
                       </Badge>
@@ -279,13 +430,14 @@ export function CommunitySection() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-slate-300 whitespace-pre-wrap">{post.content}</p>
+                <p className="text-slate-300 whitespace-pre-wrap mb-4">{post.content}</p>
                 {post.image_url && (
                   <div className="mt-4">
                     <img 
                       src={post.image_url} 
                       alt="Chart" 
-                      className="rounded-lg max-w-full h-auto border border-slate-600"
+                      className="rounded-lg max-w-full h-auto border border-slate-600 cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => window.open(post.image_url, '_blank')}
                     />
                   </div>
                 )}
