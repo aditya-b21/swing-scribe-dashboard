@@ -244,19 +244,17 @@ export function AuthPage() {
             </TabsContent>
 
             <TabsContent value="admin">
-              <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                <h4 className="text-sm font-semibold text-blue-400 mb-2 flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  Admin Access
-                </h4>
-                <div className="text-xs text-blue-300 space-y-1">
-                  <div><strong>Username:</strong> admin</div>
-                  <div><strong>Password:</strong> SwingScribe2024!</div>
-                  <div><strong>Master Key:</strong> SWING_ADMIN_2024</div>
-                </div>
-              </div>
-
               <form onSubmit={handleAdminLogin} className="space-y-4">
+                <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <h4 className="text-sm font-semibold text-blue-400 mb-2 flex items-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    Admin Access Required
+                  </h4>
+                  <p className="text-xs text-blue-300">
+                    Enter your admin credentials to access the administration panel.
+                  </p>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="admin-username">Username</Label>
                   <Input

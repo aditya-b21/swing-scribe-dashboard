@@ -3,10 +3,11 @@ import { useState } from 'react';
 import { AdminLogin } from './AdminLogin';
 import { UserManagement } from './UserManagement';
 import { CommunityManagement } from './CommunityManagement';
+import { CommunityRequestsManagement } from './CommunityRequestsManagement';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Shield, Users, MessageSquare, LogOut } from 'lucide-react';
+import { Shield, Users, MessageSquare, UserPlus, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export function AdminPanel() {
@@ -51,10 +52,14 @@ export function AdminPanel() {
         </Card>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 bg-white/5 border border-white/10">
+          <TabsList className="grid w-full grid-cols-3 bg-white/5 border border-white/10">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               User Management
+            </TabsTrigger>
+            <TabsTrigger value="community-requests" className="flex items-center gap-2">
+              <UserPlus className="w-4 h-4" />
+              Community Requests
             </TabsTrigger>
             <TabsTrigger value="community" className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
@@ -64,6 +69,10 @@ export function AdminPanel() {
 
           <TabsContent value="users">
             <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="community-requests">
+            <CommunityRequestsManagement />
           </TabsContent>
 
           <TabsContent value="community">

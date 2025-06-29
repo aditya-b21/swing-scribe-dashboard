@@ -1,254 +1,263 @@
-
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Upload, Send, Pin, Image, Clock, User } from 'lucide-react';
+import { Users, MessageSquare, TrendingUp, HelpCircle, Send, UserPlus, User, Reply, Clock, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CommunityPost {
   id: string;
-  user_id: string;
-  title?: string;
-  content?: string;
-  image_url?: string;
-  post_type: 'discussion' | 'chart' | 'announcement';
-  is_pinned: boolean;
+  title: string;
+  content: string;
+  post_type: 'discussion' | 'analysis' | 'question';
   created_at: string;
-  updated_at: string;
-  user_email?: string;
+  user_id: string;
+  image_url?: string;
   replies?: CommunityReply[];
 }
 
 interface CommunityReply {
   id: string;
-  post_id: string;
-  user_id: string;
   content: string;
   created_at: string;
-  user_email?: string;
+  user_id: string;
+  post_id: string;
 }
 
 export function CommunitySection() {
-  const { user } = useAuth();
-  const { profile, refetch: refetchProfile } = useProfile();
+  const { profile, loading: profileLoading } = useProfile();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreatePost, setShowCreatePost] = useState(false);
-  const [requesting, setRequesting] = useState(false);
-  const [newPost, setNewPost] = useState({
-    title: '',
-    content: '',
-    post_type: 'discussion' as 'discussion' | 'chart' | 'announcement'
-  });
+  const [newPost, setNewPost] = useState({ title: '', content: '', post_type: 'discussion' });
+  const [newReply, setNewReply] = useState<{ [key: string]: string }>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [requestingAccess, setRequestingAccess] = useState(false);
 
   useEffect(() => {
-    if (profile?.status === 'approved') {
-      fetchPosts();
-    } else {
-      setLoading(false);
-    }
-  }, [profile]);
+    fetchPosts();
+
+    // Set up real-time subscription for posts changes
+    const postSubscription = supabase
+      .channel('public:community_posts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_posts' }, fetchPosts)
+      .subscribe();
+
+    // Set up real-time subscription for replies changes
+    const replySubscription = supabase
+      .channel('public:community_replies')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_replies' }, fetchPosts)
+      .subscribe();
+
+    return () => {
+      postSubscription.unsubscribe();
+      replySubscription.unsubscribe();
+    };
+  }, []);
 
   const fetchPosts = async () => {
     try {
-      const { data: postsData, error: postsError } = await supabase
+      setLoading(true);
+      console.log('Fetching community posts...');
+
+      const { data, error } = await supabase
         .from('community_posts')
-        .select('*')
-        .order('is_pinned', { ascending: false })
+        .select('*, replies:community_replies(*)')
         .order('created_at', { ascending: false });
 
-      if (postsError) throw postsError;
+      if (error) {
+        console.error('Fetch error:', error);
+        throw error;
+      }
 
-      // Fetch user profiles for email information
-      const userIds = postsData?.map(post => post.user_id).filter(Boolean) || [];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, email')
-        .in('id', userIds);
-
-      // Fetch replies for each post
-      const { data: repliesData } = await supabase
-        .from('community_replies')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      const postsWithUserInfo = postsData?.map(post => ({
-        ...post,
-        post_type: (post.post_type || 'discussion') as 'discussion' | 'chart' | 'announcement',
-        is_pinned: post.is_pinned || false,
-        created_at: post.created_at || new Date().toISOString(),
-        updated_at: post.updated_at || new Date().toISOString(),
-        user_email: profilesData?.find(profile => profile.id === post.user_id)?.email,
-        replies: repliesData?.filter(reply => reply.post_id === post.id).map(reply => ({
-          ...reply,
-          user_email: profilesData?.find(profile => profile.id === reply.user_id)?.email
-        })) || []
-      })) || [];
-
-      setPosts(postsWithUserInfo as CommunityPost[]);
+      console.log('Fetched community posts:', data);
+      setPosts(data || []);
     } catch (error) {
-      console.error('Error fetching posts:', error);
+      console.error('Error fetching community posts:', error);
       toast.error('Failed to fetch community posts');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreatePost = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !newPost.content.trim()) return;
+  const requestCommunityAccess = async () => {
+    if (!profile) return;
 
     try {
+      setRequestingAccess(true);
+      console.log('Requesting community access for user:', profile.id);
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          community_request_status: 'pending',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', profile.id);
+
+      if (error) {
+        console.error('Error requesting community access:', error);
+        throw error;
+      }
+
+      toast.success('Community access requested! Please wait for admin approval.');
+    } catch (error) {
+      console.error('Error requesting community access:', error);
+      toast.error('Failed to request community access');
+    } finally {
+      setRequestingAccess(false);
+    }
+  };
+
+  const createPost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile) return;
+
+    try {
+      setSubmitting(true);
+      console.log('Creating new post:', newPost);
+
       const { error } = await supabase
         .from('community_posts')
         .insert({
-          user_id: user.id,
-          title: newPost.title.trim() || null,
-          content: newPost.content.trim(),
-          post_type: newPost.post_type
+          ...newPost,
+          user_id: profile.id
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Post creation error:', error);
+        throw error;
+      }
 
       setNewPost({ title: '', content: '', post_type: 'discussion' });
-      setShowCreatePost(false);
-      await fetchPosts();
       toast.success('Post created successfully!');
+      fetchPosts();
     } catch (error) {
       console.error('Error creating post:', error);
       toast.error('Failed to create post');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleReply = async (postId: string, content: string) => {
-    if (!user || !content.trim()) return;
+  const addReply = async (e: React.FormEvent, postId: string) => {
+    e.preventDefault();
+    if (!profile) return;
 
     try {
+      setSubmitting(true);
+      console.log('Adding reply to post:', postId, newReply[postId]);
+
       const { error } = await supabase
         .from('community_replies')
         .insert({
-          post_id: postId,
-          user_id: user.id,
-          content: content.trim()
+          content: newReply[postId],
+          user_id: profile.id,
+          post_id: postId
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Reply creation error:', error);
+        throw error;
+      }
 
-      await fetchPosts();
-      toast.success('Reply added!');
+      setNewReply(prev => ({ ...prev, [postId]: '' }));
+      toast.success('Reply added successfully!');
+      fetchPosts();
     } catch (error) {
-      console.error('Error adding reply:', error);
+      console.error('Error creating reply:', error);
       toast.error('Failed to add reply');
-    }
-  };
-
-  const handleApprovalRequest = async () => {
-    if (!user) return;
-
-    setRequesting(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          status: 'pending',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      await refetchProfile();
-      toast.success('Community access request sent! Please wait for admin approval.');
-    } catch (error) {
-      console.error('Error requesting approval:', error);
-      toast.error('Failed to send approval request');
     } finally {
-      setRequesting(false);
+      setSubmitting(false);
     }
   };
 
-  const getPostTypeBadge = (type: string) => {
-    switch (type) {
-      case 'announcement':
-        return <Badge className="bg-purple-500/20 text-purple-400">Announcement</Badge>;
-      case 'chart':
-        return <Badge className="bg-blue-500/20 text-blue-400">Chart</Badge>;
-      default:
-        return <Badge className="bg-green-500/20 text-green-400">Discussion</Badge>;
-    }
-  };
+  if (profileLoading || loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-gold"></div>
+      </div>
+    );
+  }
 
   if (!profile) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-gold"></div>
-      </div>
-    );
-  }
-
-  if (profile.status === 'rejected') {
-    return (
       <Card className="glass-effect border-white/20">
         <CardContent className="text-center py-8">
-          <MessageSquare className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2 text-red-400">Access Denied</h3>
-          <p className="text-text-secondary">
-            Your community access request has been rejected. Please contact the administrator if you believe this is an error.
-          </p>
+          <p className="text-text-secondary">Please log in to access the community.</p>
         </CardContent>
       </Card>
     );
   }
 
-  if (profile.status !== 'approved') {
+  // Check community access status
+  const communityRequestStatus = profile.community_request_status;
+  const hasApprovedAccess = communityRequestStatus === 'approved';
+  const hasPendingRequest = communityRequestStatus === 'pending';
+  const hasBeenDenied = communityRequestStatus === 'denied';
+
+  if (!hasApprovedAccess) {
     return (
       <Card className="glass-effect border-white/20">
+        <CardHeader>
+          <CardTitle className="text-2xl text-gradient flex items-center gap-2">
+            <Users className="w-6 h-6" />
+            Community Access Required
+          </CardTitle>
+          <CardDescription>Join our trading community to share insights and learn from others</CardDescription>
+        </CardHeader>
         <CardContent className="text-center py-8">
-          <MessageSquare className="w-12 h-12 text-text-secondary mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Community Group Access</h3>
-          <p className="text-text-secondary mb-6">
-            Join our trading community! Share charts, ask questions, and discuss strategies with other traders.
-          </p>
-          {profile.status === 'pending' ? (
-            <div className="flex items-center justify-center gap-2 text-yellow-400">
-              <Clock className="w-5 h-5" />
-              <span>Your approval request is pending. Please wait for admin approval.</span>
+          {!communityRequestStatus || (!hasPendingRequest && !hasBeenDenied) ? (
+            <div className="space-y-4">
+              <p className="text-text-secondary mb-4">
+                Request access to join our exclusive trading community where you can share charts, ask questions, and discuss strategies with fellow traders.
+              </p>
+              <Button
+                onClick={requestCommunityAccess}
+                disabled={requestingAccess}
+                className="gradient-gold text-dark-bg"
+              >
+                {requestingAccess ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-dark-bg mr-2"></div>
+                    Requesting Access...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Request Community Access
+                  </>
+                )}
+              </Button>
             </div>
-          ) : (
-            <Button 
-              onClick={handleApprovalRequest} 
-              className="gradient-gold text-dark-bg"
-              disabled={requesting}
-            >
-              {requesting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-dark-bg mr-2"></div>
-                  Requesting...
-                </>
-              ) : (
-                <>
-                  <User className="w-4 h-4 mr-2" />
-                  Request Community Access
-                </>
-              )}
-            </Button>
-          )}
+          ) : hasPendingRequest ? (
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/20 text-yellow-400 rounded-lg">
+                <Clock className="w-4 h-4" />
+                Access Request Pending
+              </div>
+              <p className="text-text-secondary">
+                Your community access request is being reviewed by our admin team. You'll be notified once approved.
+              </p>
+            </div>
+          ) : hasBeenDenied ? (
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg">
+                <X className="w-4 h-4" />
+                Request Denied
+              </div>
+              <p className="text-text-secondary">
+                Your community access request has been denied. Please contact support if you believe this is an error.
+              </p>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-gold"></div>
-      </div>
     );
   }
 
@@ -256,80 +265,70 @@ export function CommunitySection() {
     <div className="space-y-6">
       <Card className="glass-effect border-white/20">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl text-gradient flex items-center gap-2">
-                <MessageSquare className="w-6 h-6" />
-                Community Group
-              </CardTitle>
-              <CardDescription>Share charts, ask questions, and discuss trading strategies</CardDescription>
-            </div>
-            <Button 
-              onClick={() => setShowCreatePost(!showCreatePost)}
-              className="gradient-gold text-dark-bg"
-            >
-              <Send className="w-4 h-4 mr-2" />
-              New Post
-            </Button>
-          </div>
+          <CardTitle className="text-2xl text-gradient flex items-center gap-2">
+            <Users className="w-6 h-6" />
+            Trading Community
+          </CardTitle>
+          <CardDescription>Share insights, ask questions, and learn from fellow traders</CardDescription>
         </CardHeader>
-
-        {showCreatePost && (
-          <CardContent className="border-t border-white/10">
-            <form onSubmit={handleCreatePost} className="space-y-4">
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={newPost.post_type === 'discussion' ? 'default' : 'outline'}
-                  onClick={() => setNewPost(prev => ({ ...prev, post_type: 'discussion' }))}
-                >
-                  Discussion
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={newPost.post_type === 'chart' ? 'default' : 'outline'}
-                  onClick={() => setNewPost(prev => ({ ...prev, post_type: 'chart' }))}
-                >
-                  <Image className="w-4 h-4 mr-1" />
-                  Chart
-                </Button>
-              </div>
-              
+        
+        <CardContent>
+          <form onSubmit={createPost} className="space-y-4 mb-6">
+            <div className="space-y-2">
+              <Label htmlFor="post-title">Title</Label>
               <Input
-                placeholder="Post title (optional)"
+                id="post-title"
+                placeholder="What's on your mind?"
                 value={newPost.title}
                 onChange={(e) => setNewPost(prev => ({ ...prev, title: e.target.value }))}
                 className="bg-white/5 border-white/20"
+                required
               />
-              
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="post-content">Content</Label>
               <Textarea
-                placeholder="What's on your mind? Share your trading insights, ask questions, or upload charts..."
+                id="post-content"
+                placeholder="Share your thoughts, analysis, or questions..."
                 value={newPost.content}
                 onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
                 className="bg-white/5 border-white/20 min-h-[100px]"
                 required
               />
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <Select value={newPost.post_type} onValueChange={(value) => setNewPost(prev => ({ ...prev, post_type: value }))}>
+                <SelectTrigger className="w-48 bg-white/5 border-white/20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="discussion"><MessageSquare className="w-4 h-4 mr-2 inline" />Discussion</SelectItem>
+                  <SelectItem value="analysis"><TrendingUp className="w-4 h-4 mr-2 inline" />Analysis</SelectItem>
+                  <SelectItem value="question"><HelpCircle className="w-4 h-4 mr-2 inline" />Question</SelectItem>
+                </SelectContent>
+              </Select>
               
-              <div className="flex gap-2">
-                <Button type="submit" size="sm" className="gradient-gold text-dark-bg">
-                  Post
-                </Button>
-                <Button 
-                  type="button" 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => setShowCreatePost(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        )}
+              <Button type="submit" disabled={submitting} className="gradient-gold text-dark-bg">
+                {submitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-dark-bg mr-2"></div>
+                    Posting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Post
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
       </Card>
 
+      {/* Posts Display */}
       <div className="space-y-4">
         {posts.length === 0 ? (
           <Card className="glass-effect border-white/20">
@@ -340,126 +339,75 @@ export function CommunitySection() {
           </Card>
         ) : (
           posts.map((post) => (
-            <PostCard 
-              key={post.id} 
-              post={post} 
-              onReply={handleReply}
-              getPostTypeBadge={getPostTypeBadge}
-            />
+            <Card key={post.id} className="glass-effect border-white/20">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-gradient-to-r from-accent-gold to-yellow-600 rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-dark-bg" />
+                  </div>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-semibold text-white">Anonymous Trader</span>
+                      <Badge className="text-xs">{post.post_type}</Badge>
+                      <span className="text-text-secondary text-sm">
+                        {new Date(post.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    
+                    <h3 className="font-semibold text-white mb-2">{post.title}</h3>
+                    <p className="text-text-secondary mb-4">{post.content}</p>
+                    
+                    {post.image_url && (
+                      <div className="mb-4">
+                        <img 
+                          src={post.image_url} 
+                          alt="Post attachment" 
+                          className="max-w-full h-auto rounded-lg border border-white/10"
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Replies */}
+                    {post.replies && post.replies.length > 0 && (
+                      <div className="mt-4 pl-4 border-l-2 border-white/10 space-y-3">
+                        {post.replies.map((reply) => (
+                          <div key={reply.id} className="bg-white/5 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-medium text-white text-sm">Anonymous Trader</span>
+                              <span className="text-text-secondary text-xs">
+                                {new Date(reply.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <p className="text-text-secondary text-sm">{reply.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Reply Form */}
+                    <form 
+                      onSubmit={(e) => addReply(e, post.id)} 
+                      className="mt-4 flex gap-2"
+                    >
+                      <Input
+                        placeholder="Write a reply..."
+                        value={newReply[post.id] || ''}
+                        onChange={(e) => setNewReply(prev => ({ ...prev, [post.id]: e.target.value }))}
+                        className="bg-white/5 border-white/20 flex-1"
+                        required
+                      />
+                      <Button type="submit" size="sm" className="gradient-gold text-dark-bg">
+                        <Reply className="w-4 h-4" />
+                      </Button>
+                    </form>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           ))
         )}
       </div>
     </div>
-  );
-}
-
-function PostCard({ 
-  post, 
-  onReply, 
-  getPostTypeBadge 
-}: { 
-  post: CommunityPost; 
-  onReply: (postId: string, content: string) => void;
-  getPostTypeBadge: (type: string) => JSX.Element;
-}) {
-  const [showReplyForm, setShowReplyForm] = useState(false);
-  const [replyContent, setReplyContent] = useState('');
-
-  const handleReplySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (replyContent.trim()) {
-      onReply(post.id, replyContent);
-      setReplyContent('');
-      setShowReplyForm(false);
-    }
-  };
-
-  return (
-    <Card className="glass-effect border-white/20">
-      <CardContent className="p-4">
-        <div className="space-y-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              {post.title && (
-                <h3 className="font-semibold text-accent-gold">{post.title}</h3>
-              )}
-              {getPostTypeBadge(post.post_type)}
-              {post.is_pinned && (
-                <Badge className="bg-yellow-500/20 text-yellow-400">
-                  <Pin className="w-3 h-3 mr-1" />
-                  Pinned
-                </Badge>
-              )}
-            </div>
-            <span className="text-xs text-text-secondary">
-              {new Date(post.created_at).toLocaleDateString()}
-            </span>
-          </div>
-
-          <p className="text-sm text-text-secondary">{post.content}</p>
-
-          {post.image_url && (
-            <img 
-              src={post.image_url} 
-              alt="Post attachment" 
-              className="max-w-full h-auto rounded-lg border border-white/20"
-            />
-          )}
-
-          <div className="flex items-center justify-between text-xs text-text-secondary border-t border-white/10 pt-3">
-            <span>By: {post.user_email || 'Unknown User'}</span>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setShowReplyForm(!showReplyForm)}
-              className="text-accent-gold hover:bg-accent-gold/10"
-            >
-              <MessageSquare className="w-4 h-4 mr-1" />
-              Reply ({post.replies?.length || 0})
-            </Button>
-          </div>
-
-          {post.replies && post.replies.length > 0 && (
-            <div className="pl-4 border-l-2 border-white/10 space-y-2">
-              {post.replies.map((reply) => (
-                <div key={reply.id} className="bg-white/5 p-3 rounded">
-                  <p className="text-sm mb-1">{reply.content}</p>
-                  <div className="flex justify-between text-xs text-text-secondary">
-                    <span>{reply.user_email || 'Unknown User'}</span>
-                    <span>{new Date(reply.created_at).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {showReplyForm && (
-            <form onSubmit={handleReplySubmit} className="space-y-2">
-              <Textarea
-                placeholder="Write your reply..."
-                value={replyContent}
-                onChange={(e) => setReplyContent(e.target.value)}
-                className="bg-white/5 border-white/20 text-sm"
-                rows={3}
-                required
-              />
-              <div className="flex gap-2">
-                <Button type="submit" size="sm" className="gradient-gold text-dark-bg">
-                  Reply
-                </Button>
-                <Button 
-                  type="button" 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => setShowReplyForm(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          )}
-        </div>
-      </CardContent>
-    </Card>
   );
 }
