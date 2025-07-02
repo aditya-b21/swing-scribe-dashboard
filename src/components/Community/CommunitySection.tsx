@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Users, Send, Pin, Upload, X, ImageIcon } from 'lucide-react';
+import { MessageSquare, Users, Send, Pin, Upload, X, ImageIcon, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CommunityPasswordPrompt } from './CommunityPasswordPrompt';
 
@@ -378,6 +378,30 @@ export function CommunitySection() {
     }
   };
 
+  const deletePost = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('community_posts')
+        .delete()
+        .eq('id', postId);
+
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
+
+      toast.success('Post deleted successfully!');
+      await fetchPosts();
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error('Failed to delete post. Please try again.');
+    }
+  };
+
   if (!hasAccess) {
     return (
       <div className="space-y-6">
@@ -389,30 +413,30 @@ export function CommunitySection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-400"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="glass-effect shine-animation border-slate-700">
+    <div className="space-y-6 bg-black min-h-screen p-6">
+      <Card className="bg-black border-2 border-yellow-400 shadow-lg shadow-yellow-400/20">
         <CardHeader>
-          <CardTitle className="text-2xl text-gradient flex items-center gap-2">
-            <Users className="w-6 h-6" />
+          <CardTitle className="text-3xl text-white flex items-center gap-2">
+            <Users className="w-8 h-8 text-yellow-400" />
             Premium Trading Community
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-gray-300 text-lg">
             Connect with fellow traders, share insights, and discuss market strategies
           </CardDescription>
         </CardHeader>
       </Card>
 
       {/* Create New Post */}
-      <Card className="glass-effect border-slate-700">
+      <Card className="bg-black border-2 border-yellow-400 shadow-lg shadow-yellow-400/20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-slate-300">
-            <MessageSquare className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-white text-xl">
+            <MessageSquare className="w-6 h-6 text-yellow-400" />
             Share Your Insights
           </CardTitle>
         </CardHeader>
@@ -421,13 +445,13 @@ export function CommunitySection() {
             placeholder="Post title..."
             value={newPost.title}
             onChange={(e) => setNewPost(prev => ({ ...prev, title: e.target.value }))}
-            className="bg-slate-800 border-slate-600 focus:border-slate-400 text-white"
+            className="bg-gray-900 border-2 border-gray-700 focus:border-yellow-400 text-white placeholder-gray-400 transition-all duration-300"
           />
           <Textarea
             placeholder="Share your trading insights, analysis, or questions..."
             value={newPost.content}
             onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
-            className="bg-slate-800 border-slate-600 focus:border-slate-400 min-h-[100px] text-white"
+            className="bg-gray-900 border-2 border-gray-700 focus:border-yellow-400 min-h-[100px] text-white placeholder-gray-400 transition-all duration-300"
           />
           
           {/* Image Preview */}
@@ -436,13 +460,13 @@ export function CommunitySection() {
               <img 
                 src={imagePreview} 
                 alt="Preview" 
-                className="max-w-full h-48 object-cover rounded-lg border border-slate-600"
+                className="max-w-full h-48 object-cover rounded-lg border-2 border-yellow-400"
               />
               <Button
                 onClick={removeImage}
                 variant="destructive"
                 size="sm"
-                className="absolute top-2 right-2"
+                className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 transform hover:scale-110 transition-all duration-200"
                 type="button"
               >
                 <X className="w-4 h-4" />
@@ -463,17 +487,17 @@ export function CommunitySection() {
             <select
               value={newPost.post_type}
               onChange={(e) => setNewPost(prev => ({ ...prev, post_type: e.target.value }))}
-              className="bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm focus:border-slate-400 text-white"
+              className="bg-gray-900 border-2 border-gray-700 rounded px-4 py-2 text-white focus:border-yellow-400 transition-all duration-300"
             >
               <option value="discussion">Discussion</option>
               <option value="chart">Chart Share</option>
               <option value="announcement">Announcement</option>
             </select>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <Button
                 onClick={triggerFileInput}
                 variant="outline"
-                className="border-slate-600 hover:bg-slate-800 text-slate-300 btn-animated"
+                className="border-2 border-yellow-400 bg-black hover:bg-yellow-400 hover:text-black text-yellow-400 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-yellow-400/50"
                 type="button"
               >
                 <ImageIcon className="w-4 h-4 mr-2" />
@@ -482,11 +506,11 @@ export function CommunitySection() {
               <Button
                 onClick={createPost}
                 disabled={uploadingPost || (!newPost.title.trim() || !newPost.content.trim())}
-                className="gradient-slate font-semibold btn-animated btn-glow"
+                className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-yellow-400/50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {uploadingPost ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
                     {selectedImage ? 'Uploading...' : 'Posting...'}
                   </>
                 ) : (
@@ -504,41 +528,53 @@ export function CommunitySection() {
       {/* Community Posts */}
       <div className="space-y-4">
         {posts.length === 0 ? (
-          <Card className="glass-effect border-slate-700">
+          <Card className="bg-black border-2 border-yellow-400 shadow-lg shadow-yellow-400/20">
             <CardContent className="text-center py-8">
-              <MessageSquare className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-              <p className="text-slate-400">No posts yet. Be the first to start a discussion!</p>
+              <MessageSquare className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
+              <p className="text-gray-300 text-lg">No posts yet. Be the first to start a discussion!</p>
             </CardContent>
           </Card>
         ) : (
           posts.map((post) => (
-            <Card key={post.id} className="glass-effect hover:bg-slate-800/50 transition-colors card-hover border-slate-700">
+            <Card key={post.id} className="bg-black border-2 border-gray-700 hover:border-yellow-400 transition-all duration-300 shadow-lg hover:shadow-yellow-400/30 transform hover:scale-[1.02]">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      {post.is_pinned && <Pin className="w-4 h-4 text-slate-300" />}
-                      <h3 className="font-semibold text-white">{post.title}</h3>
+                      {post.is_pinned && <Pin className="w-4 h-4 text-yellow-400" />}
+                      <h3 className="font-semibold text-white text-lg">{post.title}</h3>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-slate-400">
-                      <span>{post.user_full_name}</span>
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <span className="text-yellow-400">{post.user_full_name}</span>
                       <span>•</span>
                       <span>{new Date(post.created_at).toLocaleString()}</span>
-                      <Badge variant="outline" className="text-xs border-slate-600 text-slate-300">
+                      <Badge variant="outline" className="text-xs border-yellow-400 text-yellow-400 bg-yellow-400/10">
                         {post.post_type}
                       </Badge>
                     </div>
                   </div>
+                  
+                  {/* Delete button - only show for post owner */}
+                  {user && post.user_id === user.id && (
+                    <Button
+                      onClick={() => deletePost(post.id)}
+                      variant="destructive"
+                      size="sm"
+                      className="bg-red-600 hover:bg-red-700 text-white transform hover:scale-110 transition-all duration-200 shadow-lg hover:shadow-red-500/50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-slate-300 whitespace-pre-wrap mb-4">{post.content}</p>
+                <p className="text-gray-300 whitespace-pre-wrap mb-4 leading-relaxed">{post.content}</p>
                 {post.image_url && (
                   <div className="mt-4">
                     <img 
                       src={post.image_url} 
                       alt="Chart" 
-                      className="rounded-lg max-w-full h-auto border border-slate-600 cursor-pointer hover:opacity-90 transition-opacity"
+                      className="rounded-lg max-w-full h-auto border-2 border-yellow-400 cursor-pointer hover:opacity-90 transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-yellow-400/30"
                       onClick={() => window.open(post.image_url, '_blank')}
                     />
                   </div>
