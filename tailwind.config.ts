@@ -58,7 +58,7 @@ export default {
 				},
 				// Custom theme colors
 				'dark-bg': '#0B0B0B',
-				'accent-gold': '#E4C06D',
+				'accent-gold': '#d4af37',
 				'text-primary': '#FFFFFF',
 				'text-secondary': '#CFCFCF',
 				'profit-green': '#10B981',
