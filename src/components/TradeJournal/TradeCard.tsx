@@ -32,11 +32,11 @@ export function TradeCard({ trade, onUpdate }: TradeCardProps) {
 
   const getSetupColor = (setup: string) => {
     switch (setup) {
-      case 'VCP Setup A1': return 'bg-blue-500/20 text-blue-400';
-      case 'Rocket Base A2': return 'bg-green-500/20 text-green-400';
-      case 'IPO Base A3': return 'bg-purple-500/20 text-purple-400';
-      case 'Extra Setup': return 'bg-orange-500/20 text-orange-400';
-      default: return 'bg-gray-500/20 text-gray-400';
+      case 'VCP Setup A1': return 'bg-blue-600/30 text-blue-300 border border-blue-500/50 font-bold text-sm px-3 py-1 rounded-full shadow-lg';
+      case 'Rocket Base A2': return 'bg-green-600/30 text-green-300 border border-green-500/50 font-bold text-sm px-3 py-1 rounded-full shadow-lg';
+      case 'IPO Base A3': return 'bg-purple-600/30 text-purple-300 border border-purple-500/50 font-bold text-sm px-3 py-1 rounded-full shadow-lg';
+      case 'Extra Setup': return 'bg-orange-600/30 text-orange-300 border border-orange-500/50 font-bold text-sm px-3 py-1 rounded-full shadow-lg';
+      default: return 'bg-gray-600/30 text-gray-300 border border-gray-500/50 font-bold text-sm px-3 py-1 rounded-full shadow-lg';
     }
   };
 
@@ -72,10 +72,10 @@ export function TradeCard({ trade, onUpdate }: TradeCardProps) {
         <div className="flex items-start justify-between">
           <div className="space-y-2 flex-1">
             <div className="flex items-center gap-3">
-              <h3 className="text-lg font-semibold text-accent-gold">{trade.stock_name}</h3>
-              <Badge className={getSetupColor(trade.setup_name)}>
+              <h3 className="text-lg font-semibold text-accent-blue">{trade.stock_name}</h3>
+              <div className={getSetupColor(trade.setup_name)}>
                 {trade.setup_name}
-              </Badge>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -108,10 +107,10 @@ export function TradingCalculator() {
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Position Size Calculator */}
-        <Card className="glass-effect border-white/10">
+        <Card className="calculator-theme">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-accent-gold" />
+              <Target className="w-5 h-5 text-accent-blue" />
               Position Size Calculator
             </CardTitle>
           </CardHeader>
@@ -151,14 +150,14 @@ export function TradingCalculator() {
               />
             </div>
             
-            <Button onClick={calculatePositionSize} className="w-full gradient-gold text-dark-bg">
+            <Button onClick={calculatePositionSize} className="w-full gradient-blue text-white">
               Calculate Position Size
             </Button>
             
             {positionSize.result > 0 && (
-              <div className="p-4 bg-accent-gold/10 rounded-lg border border-accent-gold/20">
+              <div className="p-4 bg-accent-blue/10 rounded-lg border border-accent-blue/20">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-accent-gold">{positionSize.result}</div>
+                  <div className="text-2xl font-bold text-accent-blue">{positionSize.result}</div>
                   <div className="text-sm text-text-secondary">Shares to buy</div>
                 </div>
               </div>
@@ -167,10 +166,10 @@ export function TradingCalculator() {
         </Card>
 
         {/* Risk Reward Calculator */}
-        <Card className="glass-effect border-white/10">
+        <Card className="calculator-theme">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-accent-gold" />
+              <TrendingUp className="w-5 h-5 text-accent-blue" />
               Risk:Reward Ratio
             </CardTitle>
           </CardHeader>
@@ -211,7 +210,7 @@ export function TradingCalculator() {
               />
             </div>
             
-            <Button onClick={calculateRiskReward} className="w-full gradient-gold text-dark-bg">
+            <Button onClick={calculateRiskReward} className="w-full gradient-blue text-white">
               Calculate Risk:Reward
             </Button>
             
@@ -225,9 +224,9 @@ export function TradingCalculator() {
                   <div className="text-sm text-text-secondary">Reward</div>
                   <div className="font-bold text-profit-green">{formatCurrency(riskReward.rewardAmount)}</div>
                 </div>
-                <div className="p-3 bg-accent-gold/10 rounded border border-accent-gold/20 text-center">
+                <div className="p-3 bg-accent-blue/10 rounded border border-accent-blue/20 text-center">
                   <div className="text-sm text-text-secondary">Risk:Reward Ratio</div>
-                  <div className="text-xl font-bold text-accent-gold">{riskReward.ratio}</div>
+                  <div className="text-xl font-bold text-accent-blue">{riskReward.ratio}</div>
                 </div>
               </div>
             )}
@@ -235,10 +234,10 @@ export function TradingCalculator() {
         </Card>
 
         {/* Percentage Gain/Loss Calculator */}
-        <Card className="glass-effect border-white/10">
+        <Card className="calculator-theme">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Percent className="w-5 h-5 text-accent-gold" />
+              <Percent className="w-5 h-5 text-accent-blue" />
               % Gain/Loss Calculator
             </CardTitle>
           </CardHeader>
@@ -267,7 +266,7 @@ export function TradingCalculator() {
               />
             </div>
             
-            <Button onClick={calculatePercentage} className="w-full gradient-gold text-dark-bg">
+            <Button onClick={calculatePercentage} className="w-full gradient-blue text-white">
               Calculate Percentage
             </Button>
             
@@ -295,10 +294,10 @@ export function TradingCalculator() {
         </Card>
 
         {/* Target/Stop Loss Calculator */}
-        <Card className="glass-effect border-white/10">
+        <Card className="calculator-theme">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-accent-gold" />
+              <Target className="w-5 h-5 text-accent-blue" />
               Target/Stop Loss Calculator
             </CardTitle>
           </CardHeader>
@@ -339,7 +338,7 @@ export function TradingCalculator() {
               />
             </div>
             
-            <Button onClick={calculateTargetStop} className="w-full gradient-gold text-dark-bg">
+            <Button onClick={calculateTargetStop} className="w-full gradient-blue text-white">
               Calculate Levels
             </Button>
             

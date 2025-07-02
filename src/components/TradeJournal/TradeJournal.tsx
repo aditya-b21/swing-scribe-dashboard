@@ -30,7 +30,7 @@ export function TradeJournal() {
           </div>
           <Button
             onClick={() => setShowForm(!showForm)}
-            className="gradient-gold text-dark-bg font-semibold"
+            className="gradient-blue text-white font-semibold"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Trade

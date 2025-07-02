@@ -10,13 +10,13 @@ interface CalculatorCardProps {
 
 export function CalculatorCard({ title, description, children }: CalculatorCardProps) {
   return (
-    <Card className="calculator-theme glass-effect shine-animation">
+    <Card className="calculator-theme shine-animation">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-white">
-          <Calculator className="w-5 h-5 text-slate-300" />
+          <Calculator className="w-5 h-5 text-accent-blue" />
           {title}
         </CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardDescription className="text-text-secondary">
           {description}
         </CardDescription>
       </CardHeader>

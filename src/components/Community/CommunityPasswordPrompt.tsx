@@ -41,13 +41,13 @@ export function CommunityPasswordPrompt({ onPasswordSubmit }: CommunityPasswordP
       <Card className="glass-effect shine-animation max-w-md mx-auto">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <Lock className="w-16 h-16 text-gray-300" />
+            <Lock className="w-16 h-16 text-accent-blue" />
           </div>
           <CardTitle className="text-2xl text-white flex items-center justify-center gap-2">
             <Users className="w-6 h-6" />
             Community Access Required
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-text-secondary">
             Enter the community password to access the trading group
           </CardDescription>
         </CardHeader>
@@ -55,16 +55,16 @@ export function CommunityPasswordPrompt({ onPasswordSubmit }: CommunityPasswordP
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="community-password" className="text-gray-300">Community Password</Label>
+              <Label htmlFor="community-password" className="text-text-secondary">Community Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                <Lock className="absolute left-3 top-3 w-4 h-4 text-text-secondary" />
                 <Input
                   id="community-password"
                   type="password"
                   placeholder="Enter community access password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="bg-card-bg border-gray-600 pl-10 focus:border-gray-400 text-white placeholder:text-gray-500"
+                  className="bg-card-bg border-white/20 pl-10 focus:border-accent-blue text-white placeholder:text-text-secondary"
                   required
                 />
               </div>
@@ -72,7 +72,7 @@ export function CommunityPasswordPrompt({ onPasswordSubmit }: CommunityPasswordP
             
             <Button
               type="submit"
-              className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold btn-animated"
+              className="w-full gradient-blue text-white font-semibold btn-animated"
               disabled={loading}
             >
               {loading ? 'Verifying...' : 'Access Community'}

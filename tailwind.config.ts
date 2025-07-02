@@ -56,9 +56,9 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				// Custom theme colors - Updated to Metallic Gold
+				// Custom theme colors - Updated to Dark Blue
 				'dark-bg': '#0B0B0B',
-				'accent-gold': '#B8860B',
+				'accent-blue': '#1e40af',
 				'text-primary': '#FFFFFF',
 				'text-secondary': '#CFCFCF',
 				'profit-green': '#10B981',
