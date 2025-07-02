@@ -420,10 +420,10 @@ export function CommunitySection() {
 
   return (
     <div className="space-y-6 bg-black min-h-screen p-6">
-      <Card className="bg-black border-2 border-yellow-400 shadow-lg shadow-yellow-400/20">
+      <Card className="bg-black border-2 border-blue-600 shadow-lg shadow-blue-600/20">
         <CardHeader>
           <CardTitle className="text-3xl text-white flex items-center gap-2">
-            <Users className="w-8 h-8 text-yellow-400" />
+            <Users className="w-8 h-8 text-blue-400" />
             Premium Trading Community
           </CardTitle>
           <CardDescription className="text-gray-300 text-lg">
@@ -433,10 +433,10 @@ export function CommunitySection() {
       </Card>
 
       {/* Create New Post */}
-      <Card className="bg-black border-2 border-yellow-400 shadow-lg shadow-yellow-400/20">
+      <Card className="bg-black border-2 border-blue-600 shadow-lg shadow-blue-600/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white text-xl">
-            <MessageSquare className="w-6 h-6 text-yellow-400" />
+            <MessageSquare className="w-6 h-6 text-blue-400" />
             Share Your Insights
           </CardTitle>
         </CardHeader>
@@ -445,13 +445,13 @@ export function CommunitySection() {
             placeholder="Post title..."
             value={newPost.title}
             onChange={(e) => setNewPost(prev => ({ ...prev, title: e.target.value }))}
-            className="bg-gray-900 border-2 border-gray-700 focus:border-yellow-400 text-white placeholder-gray-400 transition-all duration-300"
+            className="bg-gray-900 border-2 border-gray-700 focus:border-blue-400 text-white placeholder-gray-400 transition-all duration-300"
           />
           <Textarea
             placeholder="Share your trading insights, analysis, or questions..."
             value={newPost.content}
             onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
-            className="bg-gray-900 border-2 border-gray-700 focus:border-yellow-400 min-h-[100px] text-white placeholder-gray-400 transition-all duration-300"
+            className="bg-gray-900 border-2 border-gray-700 focus:border-blue-400 min-h-[100px] text-white placeholder-gray-400 transition-all duration-300"
           />
           
           {/* Image Preview */}
@@ -460,7 +460,7 @@ export function CommunitySection() {
               <img 
                 src={imagePreview} 
                 alt="Preview" 
-                className="max-w-full h-48 object-cover rounded-lg border-2 border-yellow-400"
+                className="max-w-full h-48 object-cover rounded-lg border-2 border-blue-400"
               />
               <Button
                 onClick={removeImage}
@@ -487,7 +487,7 @@ export function CommunitySection() {
             <select
               value={newPost.post_type}
               onChange={(e) => setNewPost(prev => ({ ...prev, post_type: e.target.value }))}
-              className="bg-gray-900 border-2 border-gray-700 rounded px-4 py-2 text-white focus:border-yellow-400 transition-all duration-300"
+              className="bg-gray-900 border-2 border-gray-700 rounded px-4 py-2 text-white focus:border-blue-400 transition-all duration-300"
             >
               <option value="discussion">Discussion</option>
               <option value="chart">Chart Share</option>
@@ -497,7 +497,7 @@ export function CommunitySection() {
               <Button
                 onClick={triggerFileInput}
                 variant="outline"
-                className="border-2 border-yellow-400 bg-black hover:bg-yellow-400 hover:text-black text-yellow-400 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-yellow-400/50"
+                className="border-2 border-blue-400 bg-black hover:bg-blue-400 hover:text-black text-blue-400 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-blue-400/50"
                 type="button"
               >
                 <ImageIcon className="w-4 h-4 mr-2" />
@@ -506,7 +506,7 @@ export function CommunitySection() {
               <Button
                 onClick={createPost}
                 disabled={uploadingPost || (!newPost.title.trim() || !newPost.content.trim())}
-                className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-yellow-400/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-blue-500 hover:bg-blue-600 text-white font-bold transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {uploadingPost ? (
                   <>
@@ -528,27 +528,27 @@ export function CommunitySection() {
       {/* Community Posts */}
       <div className="space-y-4">
         {posts.length === 0 ? (
-          <Card className="bg-black border-2 border-yellow-400 shadow-lg shadow-yellow-400/20">
+          <Card className="bg-black border-2 border-blue-600 shadow-lg shadow-blue-600/20">
             <CardContent className="text-center py-8">
-              <MessageSquare className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
+              <MessageSquare className="w-12 h-12 text-blue-400 mx-auto mb-4" />
               <p className="text-gray-300 text-lg">No posts yet. Be the first to start a discussion!</p>
             </CardContent>
           </Card>
         ) : (
           posts.map((post) => (
-            <Card key={post.id} className="bg-black border-2 border-gray-700 hover:border-yellow-400 transition-all duration-300 shadow-lg hover:shadow-yellow-400/30 transform hover:scale-[1.02]">
+            <Card key={post.id} className="bg-black border-2 border-gray-700 hover:border-blue-400 transition-all duration-300 shadow-lg hover:shadow-blue-400/30 transform hover:scale-[1.02]">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      {post.is_pinned && <Pin className="w-4 h-4 text-yellow-400" />}
+                      {post.is_pinned && <Pin className="w-4 h-4 text-blue-400" />}
                       <h3 className="font-semibold text-white text-lg">{post.title}</h3>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-400">
-                      <span className="text-yellow-400">{post.user_full_name}</span>
+                      <span className="text-blue-400">{post.user_full_name}</span>
                       <span>•</span>
                       <span>{new Date(post.created_at).toLocaleString()}</span>
-                      <Badge variant="outline" className="text-xs border-yellow-400 text-yellow-400 bg-yellow-400/10">
+                      <Badge variant="outline" className="text-xs border-blue-400 text-blue-400 bg-blue-400/10">
                         {post.post_type}
                       </Badge>
                     </div>
@@ -574,7 +574,7 @@ export function CommunitySection() {
                     <img 
                       src={post.image_url} 
                       alt="Chart" 
-                      className="rounded-lg max-w-full h-auto border-2 border-yellow-400 cursor-pointer hover:opacity-90 transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-yellow-400/30"
+                      className="rounded-lg max-w-full h-auto border-2 border-blue-400 cursor-pointer hover:opacity-90 transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-blue-400/30"
                       onClick={() => window.open(post.image_url, '_blank')}
                     />
                   </div>
