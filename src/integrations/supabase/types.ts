@@ -125,6 +125,45 @@ export type Database = {
         }
         Relationships: []
       }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          discount_type: string
+          discount_value: number
+          expiry_date: string | null
+          id: string
+          is_active: boolean | null
+          usage_count: number | null
+          usage_limit: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          discount_type: string
+          discount_value: number
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          usage_count?: number | null
+          usage_limit?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          discount_type?: string
+          discount_value?: number
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          usage_count?: number | null
+          usage_limit?: number | null
+        }
+        Relationships: []
+      }
       email_verification_tokens: {
         Row: {
           created_at: string | null
@@ -149,6 +188,84 @@ export type Database = {
           token?: string
           used?: boolean | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      payment_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string | null
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value: string
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
+      payment_submissions: {
+        Row: {
+          admin_notes: string | null
+          coupon_code: string | null
+          created_at: string | null
+          discount_amount: number | null
+          final_amount: number
+          id: string
+          payment_amount: number
+          payment_proof_url: string | null
+          status: string | null
+          user_email: string
+          user_id: string | null
+          user_name: string
+          utr_reference: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          coupon_code?: string | null
+          created_at?: string | null
+          discount_amount?: number | null
+          final_amount: number
+          id?: string
+          payment_amount: number
+          payment_proof_url?: string | null
+          status?: string | null
+          user_email: string
+          user_id?: string | null
+          user_name: string
+          utr_reference: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          coupon_code?: string | null
+          created_at?: string | null
+          discount_amount?: number | null
+          final_amount?: number
+          id?: string
+          payment_amount?: number
+          payment_proof_url?: string | null
+          status?: string | null
+          user_email?: string
+          user_id?: string | null
+          user_name?: string
+          utr_reference?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: []
       }

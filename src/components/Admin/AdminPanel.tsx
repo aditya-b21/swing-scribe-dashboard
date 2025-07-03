@@ -6,10 +6,11 @@ import { CommunityManagement } from './CommunityManagement';
 import { CommunityRequestsManagement } from './CommunityRequestsManagement';
 import { AllUsersManagement } from './AllUsersManagement';
 import { CommunityPasswordManagement } from './CommunityPasswordManagement';
+import { PaymentManagement } from './PaymentManagement';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Shield, Users, MessageSquare, UserPlus, LogOut, UsersIcon, Lock } from 'lucide-react';
+import { Shield, Users, MessageSquare, UserPlus, LogOut, UsersIcon, Lock, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export function AdminPanel() {
@@ -54,7 +55,7 @@ export function AdminPanel() {
         </Card>
 
         <Tabs defaultValue="all-users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-card-bg border border-gray-600">
+          <TabsList className="grid w-full grid-cols-6 bg-card-bg border border-gray-600">
             <TabsTrigger value="all-users" className="flex items-center gap-2 btn-animated btn-scale text-gray-300 data-[state=active]:text-white">
               <UsersIcon className="w-4 h-4" />
               <span className="hidden sm:inline">All Users</span>
@@ -62,6 +63,10 @@ export function AdminPanel() {
             <TabsTrigger value="users" className="flex items-center gap-2 btn-animated btn-scale text-gray-300 data-[state=active]:text-white">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">User Management</span>
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="flex items-center gap-2 btn-animated btn-scale text-gray-300 data-[state=active]:text-white">
+              <CreditCard className="w-4 h-4" />
+              <span className="hidden sm:inline">Payments</span>
             </TabsTrigger>
             <TabsTrigger value="community-password" className="flex items-center gap-2 btn-animated btn-scale text-gray-300 data-[state=active]:text-white">
               <Lock className="w-4 h-4" />
@@ -83,6 +88,10 @@ export function AdminPanel() {
 
           <TabsContent value="users">
             <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="payments">
+            <PaymentManagement />
           </TabsContent>
 
           <TabsContent value="community-password">

@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PaymentModal } from '@/components/Payment/PaymentModal';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +33,8 @@ export function CommunitySection() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingPost, setUploadingPost] = useState(false);
+  const [hasVerifiedPayment, setHasVerifiedPayment] = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(true);
 
   // Check community access and validate password freshness
   useEffect(() => {
@@ -75,6 +78,20 @@ export function CommunitySection() {
 
   const checkCommunityAccess = async () => {
     try {
+      setCheckingPayment(true);
+      
+      // Check if user has verified payment
+      if (user) {
+        const { data: paymentData } = await supabase
+          .from('payment_submissions')
+          .select('status')
+          .eq('user_id', user.id)
+          .eq('status', 'verified')
+          .limit(1);
+        
+        setHasVerifiedPayment(paymentData && paymentData.length > 0);
+      }
+      
       const communityAccess = sessionStorage.getItem('community_access');
       const accessTimestamp = sessionStorage.getItem('community_access_time');
       const accessPassword = sessionStorage.getItem('community_password');
@@ -216,6 +233,7 @@ export function CommunitySection() {
       toast.error('Failed to load community posts');
     } finally {
       setLoading(false);
+      setCheckingPayment(false);
     }
   };
 
