@@ -7,7 +7,7 @@ import { PaymentModal } from '@/components/Payment/PaymentModal';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Users, Send, Pin, Upload, X, ImageIcon, Trash2 } from 'lucide-react';
+import { MessageSquare, Users, Send, Pin, Upload, X, ImageIcon, Trash2, CreditCard, AlertCircle, CheckCircle, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { CommunityPasswordPrompt } from './CommunityPasswordPrompt';
 
@@ -421,8 +421,78 @@ export function CommunitySection() {
   };
 
   if (!hasAccess) {
+    if (checkingPayment) {
+      return (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      );
+    }
+
+    if (!hasVerifiedPayment) {
+      return (
+        <div className="space-y-6 bg-background min-h-screen p-6">
+          <Card className="border-primary/20 bg-card">
+            <CardHeader className="text-center">
+              <CardTitle className="flex items-center justify-center gap-2 text-primary text-2xl">
+                <Lock className="w-6 h-6" />
+                Premium Community Access
+              </CardTitle>
+              <CardDescription className="text-lg">
+                Subscribe to access our exclusive trading community
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="text-center space-y-4">
+                <div className="bg-primary/10 p-6 rounded-lg border border-primary/20">
+                  <CreditCard className="w-12 h-12 text-primary mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-primary mb-2">Premium Features</h3>
+                  <ul className="text-left space-y-2 text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      Share trading insights and charts
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      Connect with experienced traders
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      Access to exclusive discussions
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      Real-time market insights
+                    </li>
+                  </ul>
+                </div>
+                <PaymentModal>
+                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
+                    <CreditCard className="w-5 h-5 mr-2" />
+                    Subscribe Now
+                  </Button>
+                </PaymentModal>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    // User has verified payment but no password access - show password prompt
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 bg-background min-h-screen p-6">
+        <Card className="border-primary/20 bg-card">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2 text-primary text-2xl">
+              <CheckCircle className="w-6 h-6 text-green-400" />
+              Payment Verified!
+            </CardTitle>
+            <CardDescription className="text-lg text-green-400">
+              Your payment has been verified. Enter the community password to access.
+            </CardDescription>
+          </CardHeader>
+        </Card>
         <CommunityPasswordPrompt onPasswordSubmit={verifyPassword} />
       </div>
     );

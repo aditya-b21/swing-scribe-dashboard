@@ -267,11 +267,12 @@ export function PaymentModal({ children }: PaymentModalProps) {
                 <h3 className="text-lg font-semibold">Scan QR Code to Pay</h3>
               </div>
               {settings.qr_code_url && (
-                <div className="flex justify-center mb-4">
+                <div className="flex justify-center mb-4 p-4 bg-white rounded-lg">
                   <img 
                     src={settings.qr_code_url} 
-                    alt="Payment QR Code" 
-                    className="w-48 h-48 border-2 border-primary/20 rounded-lg"
+                    alt="Payment QR Code - SwingScribe" 
+                    className="w-64 h-64 border border-gray-300 rounded-lg shadow-lg"
+                    style={{ maxWidth: '100%', height: 'auto' }}
                   />
                 </div>
               )}
