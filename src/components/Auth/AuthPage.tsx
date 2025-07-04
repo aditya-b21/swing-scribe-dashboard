@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mail, Lock, User, Crown, Shield } from 'lucide-react';
+import { Mail, Lock, User, Crown, Shield, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const ADMIN_CREDENTIALS = {
   username: 'admin',
@@ -20,6 +21,8 @@ export function AuthPage() {
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -35,8 +38,12 @@ export function AuthPage() {
     e.preventDefault();
     try {
       setLoading(true);
-      await signIn(formData.email, formData.password);
-      toast.success('Welcome back!');
+      const { error } = await signIn(formData.email, formData.password);
+      if (error) {
+        toast.error(error.message || 'Failed to sign in');
+      } else {
+        toast.success('Welcome back!');
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to sign in');
     } finally {
@@ -48,10 +55,41 @@ export function AuthPage() {
     e.preventDefault();
     try {
       setLoading(true);
-      await signUp(formData.email, formData.password, formData.fullName);
-      toast.success('Account created successfully! Please check your email for verification.');
+      const { error } = await signUp(formData.email, formData.password, formData.fullName);
+      if (error) {
+        toast.error(error.message || 'Failed to sign up');
+      } else {
+        toast.success('Account created successfully! Please check your email for verification.');
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to sign up');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotPasswordEmail) {
+      toast.error('Please enter your email address');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        toast.error(error.message || 'Failed to send reset email');
+      } else {
+        toast.success('Password reset email sent! Check your inbox.');
+        setShowForgotPassword(false);
+        setForgotPasswordEmail('');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send reset email');
     } finally {
       setLoading(false);
     }
@@ -79,6 +117,62 @@ export function AuthPage() {
       setLoading(false);
     }
   };
+
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen bg-dark-bg flex items-center justify-center p-4">
+        <Card className="w-full max-w-md glass-effect shine-animation">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Mail className="w-12 h-12 text-gray-300" />
+            </div>
+            <CardTitle className="text-2xl text-white">Reset Password</CardTitle>
+            <CardDescription className="text-gray-400">
+              Enter your email address and we'll send you a link to reset your password.
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="forgot-email" className="text-gray-300">Email Address</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={forgotPasswordEmail}
+                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                    className="bg-card-bg border-gray-600 pl-10 focus:border-gray-400 text-white placeholder:text-gray-500"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <Button
+                type="submit"
+                className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold btn-animated"
+                disabled={loading}
+              >
+                {loading ? 'Sending...' : 'Send Reset Link'}
+              </Button>
+              
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full text-gray-400 hover:text-white"
+                onClick={() => setShowForgotPassword(false)}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Sign In
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-dark-bg flex items-center justify-center p-4">
@@ -131,6 +225,17 @@ export function AuthPage() {
                       required
                     />
                   </div>
+                </div>
+                
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="text-gray-400 hover:text-white p-0 h-auto"
+                    onClick={() => setShowForgotPassword(true)}
+                  >
+                    Forgot Password?
+                  </Button>
                 </div>
                 
                 <Button

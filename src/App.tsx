@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { AuthPage } from "@/components/Auth/AuthPage";
+import { PasswordResetPage } from "@/components/Auth/PasswordResetPage";
 import { Navbar } from "@/components/Layout/Navbar";
 import { DashboardTabs } from "@/components/Dashboard/DashboardTabs";
 import { AdminPanel } from "@/components/Admin/AdminPanel";
@@ -48,6 +49,7 @@ function AppContent() {
       <TradingBackground />
       <Routes>
         <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
+        <Route path="/reset-password" element={<PasswordResetPage />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route
           path="/"

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -30,11 +29,17 @@ interface CouponValidation {
   message: string;
 }
 
+// Default QR code URL - replace this with your actual QR code
+const DEFAULT_QR_CODE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKT2lDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAAHjanVNnVFPpFj333vRCS4iAlEtvUhUIIFJCi4AUkSYqIQkQSoghodkVUcERRUUEG8igiAOOjoCMFVEsDIoK2AfkIaKOg6OIisr74Xuja9a89+bN/rXXPues852zzwfACAyWSDNRNYAMqUIeEeCDx8TG4eQuQIEKJHAAEAizZCFz/SMBAPh+PDwrIsAHvgABeNMLCADATZvAMByH/w/qQplcAYCEAcB0kThLCIAUAEB6jkKmAEBGAYCdmCZTAKAEAGDLY2LjAFAtAGAnf+bTAICd+Jl7AQBblCEVAaCRACATZYhEAGg7AKzPVopFAFgwABRmS8Q5ANgtADBJV2ZIALC3AMDOEAuyAAgMADBRiIUpAAR7AGDIIyN4AISZABRG8lc88SuuEOcqAAB4mbI8uSQ5RYFbCC1xB1dXLh4ozkkXKxQ2YQJhmkAuwnmZGTKBNA/g88wAAKCRFRHgg/P9eM4Ors7ONo62Dl8t6r8G/yJiYuP+5c+rcEAAAOF0ftH+LC+zGoA7BoBt/qIl7gRoXgugdfeLZrIPQLUAoOnaV/Nw+H48PEWhkLnZ2eXk5NhKxEJbYcpXff5nwl/AV/1s+X48/Pf14L7iJIEyXYFHBPjgwsz0TKUcz5IJhGLc5o9H/LcL//wd0yLESWK5WCoU41EScY5EmozzMqUiiUKSKcUl0v9k4t8s+wM+3zUAsGo+AXuRLahdYwP2SycQWHTA4vcAAPK7b8HUKAgDgGiD4c93/+8//UegJQCAZkmScQAAXkQkLlTKsz/HCAAARKCBKrBBG/TBGCzABhzBBdzBC/xgNoRCJMTCQhBCCmSAHHJgKayCQiiGzbAdKmAv1EAdNMBRaIaTcA4uwlW4Dj1wD/phCJ7BKLyBCQRByAgTYSHaiAFiilgjjggXmYX4IcFIBBKLJCDJiBRRIkuRNUgxUopUIFVIHfI9cgI5h1xGupE7yAAygvyGvEcxlIGyUT3UDLVDuag3GoRGogvQZHQxmo8WoJvQcrQaPYw2oefQq2gP2o8+Q8cwwOgYBzPEbDAuxsNCsTgsCZNjy7EirAyrxhqwVqwDu4n1Y8+xdwQSgUXACTYEd0IgYR5BSFhMWE7YSKggHCQ0EdoJNwkDhFHCJyKTqEu0JroR+cQYYjIxh1hILCPWEo8TLxB7iEPENyQSiUMyJ7mQAkmxpFTSEtJG0m5SI+ksqZs0SBojk8naZGuyBzmULCAryIXkneTD5DPkG+Qh8lsKnWJAcaT4U+IoUspqShnlEOU05QZlmDJBVaOaUt2ooVQRNY9aQq2htlKvUYeoEzR1mjnNgxZJS6WtopXTGmgXaPdpr+h0uhHdlR5Ol9BX0svpR+iX6AP0dwwNhhWDx4hnKBmbGAcYZxl3GK+YTKYZ04sZx1QwNzHrmOeZD5lvVVgqtip8FZHKCpVKlSaVGyovVKmqpqreqgtV81XLVI+pXlN9rkZVM1PjqQnUlqtVqp1Q61MbU2epO6iHqmeob1Q/pH5Z/YkGWcNMw09DpFGgsV/jvMYgC2MZs3gsIWsNq4Z1gTXEJrHN2Xx2KruY/R27iz2qqaE5QzNKM1ezUvOUZj8H45hx+Jx0TgnnKKeX836K3hTvKeIpG6Y0TLkxZVxrqpaXllirSKtRq0frvTau7aedpr1Fu1n7gQ5Bx0onXCdHZ4/OBZ3nU9lT3acKpxZNPTr1ri6qa6UbobtEd79up+6Ynr5egJ5Mb6feeb3n+hx9L/1U/W36p/VHDFgGswwkBtsMzhg8xTVxbzwdL8fb8VFDXcNAQ6VhlWGX4SU";
+
 export function PaymentModal({ children }: PaymentModalProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [settings, setSettings] = useState<PaymentSettings>({ payment_amount: '999', qr_code_url: '' });
+  const [settings, setSettings] = useState<PaymentSettings>({ 
+    payment_amount: '999', 
+    qr_code_url: DEFAULT_QR_CODE 
+  });
   const [formData, setFormData] = useState({
     name: '',
     email: user?.email || '',
@@ -216,7 +221,9 @@ export function PaymentModal({ children }: PaymentModalProps) {
 
       if (error) throw error;
 
-      await supabase.functions.invoke('send-payment-notification', {
+      // Send email notification immediately
+      console.log('Sending payment notification email...');
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-payment-notification', {
         body: {
           userName: formData.name,
           userEmail: formData.email,
@@ -226,9 +233,16 @@ export function PaymentModal({ children }: PaymentModalProps) {
           couponCode: couponValidation?.isValid ? couponValidation.code : null,
           discountAmount: discountAmount,
           paymentProofUrl,
-          submissionTime: new Date().toLocaleString(),
+          submissionTime: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
         },
       });
+
+      if (emailError) {
+        console.error('Email notification error:', emailError);
+        toast.error('Payment submitted but email notification failed');
+      } else {
+        console.log('Email notification sent successfully:', emailData);
+      }
 
       toast.success('Payment submission sent! Admin will verify and grant access.');
       setOpen(false);
@@ -273,17 +287,18 @@ export function PaymentModal({ children }: PaymentModalProps) {
                 <QrCode className="w-5 h-5 text-primary" />
                 <h3 className="text-lg font-semibold">Scan QR Code to Pay</h3>
               </div>
-              {settings.qr_code_url && (
-                <div className="flex justify-center mb-4">
-                  <div className="p-4 bg-white rounded-lg shadow-lg border border-gray-200">
-                    <img 
-                      src={settings.qr_code_url} 
-                      alt="Payment QR Code" 
-                      className="w-64 h-64 object-contain"
-                    />
-                  </div>
+              <div className="flex justify-center mb-4">
+                <div className="p-4 bg-white rounded-lg shadow-lg border border-gray-200">
+                  <img 
+                    src={settings.qr_code_url || DEFAULT_QR_CODE} 
+                    alt="Payment QR Code" 
+                    className="w-64 h-64 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = DEFAULT_QR_CODE;
+                    }}
+                  />
                 </div>
-              )}
+              </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-center gap-2">
                   {hasDiscount && (

@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
@@ -47,43 +48,52 @@ const handler = async (req: Request): Promise<Response> => {
       : '';
 
     const proofText = paymentProofUrl 
-      ? `<p><strong>Payment Proof:</strong> <a href="${paymentProofUrl}" target="_blank">View Screenshot</a></p>`
+      ? `<p><strong>Payment Proof:</strong> <a href="${paymentProofUrl}" target="_blank" style="color: #1e40af;">View Screenshot</a></p>`
       : '<p><strong>Payment Proof:</strong> Not provided</p>';
 
+    // Send to your Gmail immediately
     const emailResponse = await resend.emails.send({
-      from: "SwingScribe <onboarding@resend.dev>",
+      from: "SwingScribe Payment <onboarding@resend.dev>",
       to: ["adityatradedition@gmail.com"],
-      subject: `New Payment Submission - ${userName}`,
+      subject: `🚨 URGENT: New Payment Received - ₹${finalAmount} from ${userName}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h1 style="color: #1e40af; border-bottom: 2px solid #1e40af; padding-bottom: 10px;">
-            New Payment Submission
-          </h1>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8fafc;">
+          <div style="background: #1e40af; color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+            <h1 style="margin: 0; font-size: 24px;">💰 New Payment Received!</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px;">₹${finalAmount} - Immediate Action Required</p>
+          </div>
           
-          <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h2 style="color: #334155; margin-top: 0;">Customer Details</h2>
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+            <h2 style="color: #334155; margin-top: 0; color: #10b981;">Customer Details</h2>
             <p><strong>Name:</strong> ${userName}</p>
             <p><strong>Email:</strong> ${userEmail}</p>
             <p><strong>Submission Time:</strong> ${submissionTime}</p>
           </div>
           
-          <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h2 style="color: #334155; margin-top: 0;">Payment Details</h2>
-            <p><strong>UTR/Transaction ID:</strong> ${utrReference}</p>
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+            <h2 style="color: #334155; margin-top: 0; color: #3b82f6;">Payment Information</h2>
+            <p><strong>UTR/Transaction ID:</strong> <code style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-family: monospace;">${utrReference}</code></p>
             <p><strong>Original Amount:</strong> ₹${paymentAmount}</p>
             ${discountText}
-            <p><strong>Final Amount Paid:</strong> ₹${finalAmount}</p>
+            <p><strong>Final Amount Paid:</strong> <span style="color: #10b981; font-weight: bold; font-size: 18px;">₹${finalAmount}</span></p>
             ${proofText}
           </div>
           
-          <div style="background: #fff7ed; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #fb923c;">
-            <h3 style="color: #c2410c; margin-top: 0;">Action Required</h3>
-            <p>Please verify this payment in the admin panel and mark it as verified to grant community access.</p>
+          <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+            <h3 style="color: #92400e; margin-top: 0;">⚡ Immediate Action Required</h3>
+            <p style="color: #92400e; margin-bottom: 15px;">Please verify this payment in the admin panel and grant community access to the user.</p>
+            <div style="text-align: center;">
+              <a href="${Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'lovableproject.com')}/admin" 
+                 style="background: #1e40af; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                Open Admin Panel
+              </a>
+            </div>
           </div>
           
-          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
-            <p style="color: #64748b; font-size: 14px;">
-              This is an automated notification from SwingScribe Payment System
+          <div style="text-align: center; margin-top: 30px; padding: 20px; background: white; border-radius: 8px;">
+            <p style="color: #64748b; font-size: 14px; margin: 0;">
+              This is an automated notification from SwingScribe Payment System<br>
+              Time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
             </p>
           </div>
         </div>
@@ -92,7 +102,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Payment notification email sent successfully:", emailResponse);
 
-    return new Response(JSON.stringify({ success: true, messageId: emailResponse.data?.id }), {
+    return new Response(JSON.stringify({ 
+      success: true, 
+      messageId: emailResponse.data?.id,
+      timestamp: new Date().toISOString()
+    }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
@@ -104,7 +118,8 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         error: error.message || "Failed to send notification",
-        details: error.toString()
+        details: error.toString(),
+        timestamp: new Date().toISOString()
       }),
       {
         status: 500,
