@@ -7,7 +7,7 @@ import { PaymentModal } from '@/components/Payment/PaymentModal';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Users, Send, Pin, Upload, X, ImageIcon, Trash2, CreditCard, AlertCircle, CheckCircle, Lock } from 'lucide-react';
+import { MessageSquare, Users, Send, Pin, Upload, X, ImageIcon, Trash2, CreditCard, CheckCircle, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { CommunityPasswordPrompt } from './CommunityPasswordPrompt';
 
@@ -36,14 +36,17 @@ export function CommunitySection() {
   const [hasVerifiedPayment, setHasVerifiedPayment] = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(true);
 
-  // Check community access and validate password freshness
   useEffect(() => {
-    checkCommunityAccess();
+    if (user) {
+      checkCommunityAccess();
+    } else {
+      setLoading(false);
+      setCheckingPayment(false);
+    }
   }, [user]);
 
-  // Set up real-time subscription when user has access
   useEffect(() => {
-    if (!hasAccess) return;
+    if (!hasAccess || !user) return;
 
     const subscription = supabase
       .channel('community-posts')
@@ -59,69 +62,66 @@ export function CommunitySection() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [hasAccess]);
-
-  // Check for auth state changes and clear community access if user logs out
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
-        // Clear community access when user signs out
-        clearCommunitySession();
-      } else if (event === 'SIGNED_IN' && session) {
-        // Check community access when user signs back in
-        checkCommunityAccess();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  }, [hasAccess, user]);
 
   const checkCommunityAccess = async () => {
+    if (!user) return;
+    
     try {
       setCheckingPayment(true);
+      console.log('Checking community access for user:', user.id);
       
       // Check if user has verified payment
-      if (user) {
-        const { data: paymentData } = await supabase
-          .from('payment_submissions')
-          .select('status')
-          .eq('user_id', user.id)
-          .eq('status', 'verified')
-          .limit(1);
-        
-        setHasVerifiedPayment(paymentData && paymentData.length > 0);
-      }
+      const { data: paymentData, error: paymentError } = await supabase
+        .from('payment_submissions')
+        .select('status')
+        .eq('user_id', user.id)
+        .eq('status', 'verified')
+        .limit(1);
       
+      if (paymentError) {
+        console.error('Error checking payment:', paymentError);
+      }
+
+      const hasPayment = paymentData && paymentData.length > 0;
+      setHasVerifiedPayment(hasPayment);
+      console.log('Has verified payment:', hasPayment);
+      
+      if (!hasPayment) {
+        setLoading(false);
+        setCheckingPayment(false);
+        return;
+      }
+
+      // Check session storage for community access
       const communityAccess = sessionStorage.getItem('community_access');
       const accessTimestamp = sessionStorage.getItem('community_access_time');
       const accessPassword = sessionStorage.getItem('community_password');
       
       if (communityAccess === 'granted' && accessTimestamp && accessPassword) {
-        // Check if access is still valid (within 24 hours and password hasn't changed)
         const accessTime = parseInt(accessTimestamp);
         const currentTime = Date.now();
         const twentyFourHours = 24 * 60 * 60 * 1000;
         
         if (currentTime - accessTime < twentyFourHours) {
-          // Verify the stored password is still valid
-          const { data } = await supabase.functions.invoke('verify-community-password', {
-            body: { password: accessPassword }
-          });
-          
-          if (data?.valid) {
-            setHasAccess(true);
-            fetchPosts();
-          } else {
-            // Password changed, clear session
-            clearCommunitySession();
+          try {
+            const { data } = await supabase.functions.invoke('verify-community-password', {
+              body: { password: accessPassword }
+            });
+            
+            if (data?.valid) {
+              setHasAccess(true);
+              fetchPosts();
+              return;
+            }
+          } catch (error) {
+            console.error('Error verifying stored password:', error);
           }
-        } else {
-          // Session expired
-          clearCommunitySession();
         }
-      } else {
-        setLoading(false);
       }
+      
+      // Clear invalid session
+      clearCommunitySession();
     } catch (error) {
       console.error('Error checking community access:', error);
       clearCommunitySession();
@@ -134,6 +134,7 @@ export function CommunitySection() {
     sessionStorage.removeItem('community_password');
     setHasAccess(false);
     setLoading(false);
+    setCheckingPayment(false);
   };
 
   const verifyPassword = async (password: string): Promise<boolean> => {
@@ -144,11 +145,10 @@ export function CommunitySection() {
 
       if (error) {
         console.error('Verification error:', error);
-        throw error;
+        return false;
       }
 
       if (data?.valid) {
-        // Log access
         if (user) {
           await supabase.functions.invoke('log-community-access', {
             body: { 
@@ -158,7 +158,6 @@ export function CommunitySection() {
           });
         }
 
-        // Set session with timestamp and password
         setHasAccess(true);
         sessionStorage.setItem('community_access', 'granted');
         sessionStorage.setItem('community_access_time', Date.now().toString());
@@ -179,8 +178,8 @@ export function CommunitySection() {
   const fetchPosts = async () => {
     try {
       setLoading(true);
+      console.log('Fetching posts...');
       
-      // Get posts first
       const { data: postsData, error: postsError } = await supabase
         .from('community_posts')
         .select('*')
@@ -192,24 +191,18 @@ export function CommunitySection() {
         throw postsError;
       }
 
-      // Get unique user IDs from posts
+      console.log('Posts fetched:', postsData?.length || 0);
+
+      // Get user profiles for posts
       const userIds = [...new Set(postsData?.map(post => post.user_id).filter(Boolean))];
-      
       let postsWithUserInfo = postsData || [];
       
-      // Fetch profiles for these users if we have user IDs
       if (userIds.length > 0) {
-        const { data: profilesData, error: profilesError } = await supabase
+        const { data: profilesData } = await supabase
           .from('profiles')
           .select('id, email, full_name')
           .in('id', userIds);
 
-        if (profilesError) {
-          console.error('Profiles fetch error:', profilesError);
-          // Continue without profile data if there's an error
-        }
-
-        // Combine posts with user profile data
         postsWithUserInfo = postsData?.map(post => {
           const profile = profilesData?.find(p => p.id === post.user_id);
           return {
@@ -218,13 +211,6 @@ export function CommunitySection() {
             user_full_name: profile?.full_name || profile?.email || 'Unknown User'
           };
         }) || [];
-      } else {
-        // No users found, just use the posts as-is with default user info
-        postsWithUserInfo = postsData?.map(post => ({
-          ...post,
-          user_email: 'Unknown User',
-          user_full_name: 'Unknown User'
-        })) || [];
       }
 
       setPosts(postsWithUserInfo);
@@ -420,66 +406,83 @@ export function CommunitySection() {
     }
   };
 
-  if (!hasAccess) {
-    if (checkingPayment) {
-      return (
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      );
-    }
+  if (checkingPayment) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
-    if (!hasVerifiedPayment) {
-      return (
-        <div className="space-y-6 bg-background min-h-screen p-6">
-          <Card className="border-primary/20 bg-card">
-            <CardHeader className="text-center">
-              <CardTitle className="flex items-center justify-center gap-2 text-primary text-2xl">
-                <Lock className="w-6 h-6" />
-                Premium Community Access
-              </CardTitle>
-              <CardDescription className="text-lg">
-                Subscribe to access our exclusive trading community
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="text-center space-y-4">
-                <div className="bg-primary/10 p-6 rounded-lg border border-primary/20">
-                  <CreditCard className="w-12 h-12 text-primary mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-primary mb-2">Premium Features</h3>
-                  <ul className="text-left space-y-2 text-muted-foreground">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-400" />
-                      Share trading insights and charts
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-400" />
-                      Connect with experienced traders
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-400" />
-                      Access to exclusive discussions
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-400" />
-                      Real-time market insights
-                    </li>
-                  </ul>
-                </div>
-                <PaymentModal>
-                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
-                    <CreditCard className="w-5 h-5 mr-2" />
-                    Subscribe Now
-                  </Button>
-                </PaymentModal>
+  if (!user) {
+    return (
+      <div className="space-y-6 bg-background min-h-screen p-6">
+        <Card className="border-primary/20 bg-card">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2 text-primary text-2xl">
+              <Lock className="w-6 h-6" />
+              Login Required
+            </CardTitle>
+            <CardDescription className="text-lg">
+              Please login to access the trading community
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!hasVerifiedPayment) {
+    return (
+      <div className="space-y-6 bg-background min-h-screen p-6">
+        <Card className="border-primary/20 bg-card">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2 text-primary text-2xl">
+              <Lock className="w-6 h-6" />
+              Premium Community Access
+            </CardTitle>
+            <CardDescription className="text-lg">
+              Subscribe to access our exclusive trading community
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="text-center space-y-4">
+              <div className="bg-primary/10 p-6 rounded-lg border border-primary/20">
+                <CreditCard className="w-12 h-12 text-primary mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-primary mb-2">Premium Features</h3>
+                <ul className="text-left space-y-2 text-muted-foreground">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    Share trading insights and charts
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    Connect with experienced traders
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    Access to exclusive discussions
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    Real-time market insights
+                  </li>
+                </ul>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
+              <PaymentModal>
+                <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
+                  <CreditCard className="w-5 h-5 mr-2" />
+                  Subscribe Now
+                </Button>
+              </PaymentModal>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-    // User has verified payment but no password access - show password prompt
+  if (!hasAccess) {
     return (
       <div className="space-y-6 bg-background min-h-screen p-6">
         <Card className="border-primary/20 bg-card">
@@ -542,7 +545,6 @@ export function CommunitySection() {
             className="bg-gray-900 border-2 border-gray-700 focus:border-blue-400 min-h-[100px] text-white placeholder-gray-400 transition-all duration-300"
           />
           
-          {/* Image Preview */}
           {imagePreview && (
             <div className="relative">
               <img 
@@ -562,7 +564,6 @@ export function CommunitySection() {
             </div>
           )}
 
-          {/* Hidden file input */}
           <input
             id="chart-upload-input"
             type="file"
@@ -642,7 +643,6 @@ export function CommunitySection() {
                     </div>
                   </div>
                   
-                  {/* Delete button - only show for post owner */}
                   {user && post.user_id === user.id && (
                     <Button
                       onClick={() => deletePost(post.id)}

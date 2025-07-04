@@ -52,7 +52,6 @@ export function PaymentManagement() {
   const [selectedSubmission, setSelectedSubmission] = useState<PaymentSubmission | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   
-  // Coupon form state
   const [couponForm, setCouponForm] = useState({
     code: '',
     discount_type: 'flat' as 'flat' | 'percentage',
@@ -67,6 +66,15 @@ export function PaymentManagement() {
     fetchCoupons();
     fetchSettings();
   }, []);
+
+  const formatIndianRupee = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
   const fetchSubmissions = async () => {
     try {
@@ -251,18 +259,9 @@ export function PaymentManagement() {
     <div className="space-y-6 fade-in">
       <Tabs defaultValue="submissions" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 bg-card border border-primary/20">
-          <TabsTrigger value="submissions" className="flex items-center gap-2">
-            <CreditCard className="w-4 h-4" />
-            Payment Submissions
-          </TabsTrigger>
-          <TabsTrigger value="coupons" className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4" />
-            Coupons
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="w-4 h-4" />
-            Settings
-          </TabsTrigger>
+          <TabsTrigger value="submissions">Payments</TabsTrigger>
+          <TabsTrigger value="coupons">Coupons</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         {/* Payment Submissions Tab */}
@@ -272,7 +271,7 @@ export function PaymentManagement() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-primary">Payment Submissions</CardTitle>
-                  <CardDescription>Manage and verify user payment submissions</CardDescription>
+                  <CardDescription>Manage payment submissions</CardDescription>
                 </div>
                 <Button onClick={fetchSubmissions} variant="outline" size="sm">
                   <RefreshCw className="w-4 h-4 mr-2" />
@@ -308,7 +307,7 @@ export function PaymentManagement() {
                             </div>
                             <div>
                               <span className="text-muted-foreground">Amount:</span>
-                              <p>₹{submission.final_amount}</p>
+                              <p>{formatIndianRupee(submission.final_amount)}</p>
                             </div>
                             <div>
                               <span className="text-muted-foreground">Coupon:</span>
@@ -366,75 +365,62 @@ export function PaymentManagement() {
         {/* Coupons Tab */}
         <TabsContent value="coupons">
           <div className="space-y-6">
-            {/* Create/Edit Coupon Form */}
             <Card className="border-primary/20">
               <CardHeader>
                 <CardTitle className="text-primary">
-                  {editingCoupon ? 'Edit Coupon' : 'Create New Coupon'}
+                  {editingCoupon ? 'Edit Coupon' : 'Create Coupon'}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Coupon Code</Label>
+                    <Label>Code</Label>
                     <Input
                       value={couponForm.code}
                       onChange={(e) => setCouponForm(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                      placeholder="DISCOUNT10"
-                      className="border-primary/20"
+                      placeholder="SAVE20"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Discount Type</Label>
+                    <Label>Type</Label>
                     <Select
                       value={couponForm.discount_type}
                       onValueChange={(value: 'flat' | 'percentage') => 
                         setCouponForm(prev => ({ ...prev, discount_type: value }))
                       }
                     >
-                      <SelectTrigger className="border-primary/20">
+                      <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="flat">Flat Amount (₹)</SelectItem>
+                        <SelectItem value="flat">Flat (₹)</SelectItem>
                         <SelectItem value="percentage">Percentage (%)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Discount Value</Label>
+                    <Label>Value</Label>
                     <Input
                       type="number"
                       value={couponForm.discount_value}
                       onChange={(e) => setCouponForm(prev => ({ ...prev, discount_value: e.target.value }))}
                       placeholder={couponForm.discount_type === 'flat' ? '100' : '10'}
-                      className="border-primary/20"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Usage Limit (Optional)</Label>
+                    <Label>Usage Limit</Label>
                     <Input
                       type="number"
                       value={couponForm.usage_limit}
                       onChange={(e) => setCouponForm(prev => ({ ...prev, usage_limit: e.target.value }))}
                       placeholder="Unlimited"
-                      className="border-primary/20"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Expiry Date (Optional)</Label>
-                    <Input
-                      type="datetime-local"
-                      value={couponForm.expiry_date}
-                      onChange={(e) => setCouponForm(prev => ({ ...prev, expiry_date: e.target.value }))}
-                      className="border-primary/20"
                     />
                   </div>
                 </div>
                 <div className="flex gap-2 mt-4">
-                  <Button onClick={saveCoupon} disabled={loading} className="bg-primary">
+                  <Button onClick={saveCoupon} disabled={loading}>
                     <Plus className="w-4 h-4 mr-2" />
-                    {editingCoupon ? 'Update' : 'Create'} Coupon
+                    {editingCoupon ? 'Update' : 'Create'}
                   </Button>
                   {editingCoupon && (
                     <Button 
@@ -457,10 +443,9 @@ export function PaymentManagement() {
               </CardContent>
             </Card>
 
-            {/* Coupons List */}
             <Card className="border-primary/20">
               <CardHeader>
-                <CardTitle className="text-primary">Existing Coupons</CardTitle>
+                <CardTitle className="text-primary">Coupons</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -476,9 +461,10 @@ export function PaymentManagement() {
                               </Badge>
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              {coupon.discount_type === 'flat' ? `₹${coupon.discount_value}` : `${coupon.discount_value}%`} discount
+                              {coupon.discount_type === 'flat' 
+                                ? formatIndianRupee(coupon.discount_value)
+                                : `${coupon.discount_value}%`} discount
                               {coupon.usage_limit && ` • ${coupon.usage_count}/${coupon.usage_limit} used`}
-                              {coupon.expiry_date && ` • Expires: ${new Date(coupon.expiry_date).toLocaleDateString()}`}
                             </div>
                           </div>
                           <div className="flex gap-2">
@@ -528,17 +514,16 @@ export function PaymentManagement() {
           <Card className="border-primary/20">
             <CardHeader>
               <CardTitle className="text-primary">Payment Settings</CardTitle>
-              <CardDescription>Configure payment amount and QR code</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Payment Amount (₹)</Label>
+                <Label>Payment Amount</Label>
                 <div className="flex gap-2">
                   <Input
                     type="number"
                     value={settings.payment_amount}
                     onChange={(e) => setSettings(prev => ({ ...prev, payment_amount: e.target.value }))}
-                    className="border-primary/20"
+                    placeholder="999"
                   />
                   <Button
                     onClick={() => updateSettings('payment_amount', settings.payment_amount)}
@@ -547,6 +532,9 @@ export function PaymentManagement() {
                     Update
                   </Button>
                 </div>
+                <p className="text-sm text-muted-foreground">
+                  Current price: {formatIndianRupee(parseFloat(settings.payment_amount))}
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>QR Code URL</Label>
@@ -555,7 +543,6 @@ export function PaymentManagement() {
                     value={settings.qr_code_url}
                     onChange={(e) => setSettings(prev => ({ ...prev, qr_code_url: e.target.value }))}
                     placeholder="/path/to/qr-code.png"
-                    className="border-primary/20"
                   />
                   <Button
                     onClick={() => updateSettings('qr_code_url', settings.qr_code_url)}
@@ -591,12 +578,11 @@ export function PaymentManagement() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Reason for rejection (optional)</Label>
+                <Label>Reason (optional)</Label>
                 <Textarea
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Enter reason for rejection..."
-                  className="border-primary/20"
+                  placeholder="Enter reason..."
                 />
               </div>
               <div className="flex gap-2">
@@ -605,7 +591,7 @@ export function PaymentManagement() {
                   onClick={() => updateSubmissionStatus(selectedSubmission.id, 'rejected', adminNotes)}
                   disabled={loading}
                 >
-                  Reject Payment
+                  Reject
                 </Button>
                 <Button
                   variant="outline"

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -53,6 +54,15 @@ export function PaymentModal({ children }: PaymentModalProps) {
     }
   }, [open, user]);
 
+  const formatIndianRupee = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   const fetchPaymentSettings = async () => {
     try {
       const { data, error } = await supabase
@@ -99,7 +109,6 @@ export function PaymentModal({ children }: PaymentModalProps) {
         return;
       }
 
-      // Check expiry
       if (data.expiry_date && new Date(data.expiry_date) < new Date()) {
         setCouponValidation({
           isValid: false,
@@ -111,7 +120,6 @@ export function PaymentModal({ children }: PaymentModalProps) {
         return;
       }
 
-      // Check usage limit
       if (data.usage_limit && data.usage_count >= data.usage_limit) {
         setCouponValidation({
           isValid: false,
@@ -128,7 +136,7 @@ export function PaymentModal({ children }: PaymentModalProps) {
         discount: data.discount_value,
         discountType: data.discount_type as 'flat' | 'percentage',
         code: data.code,
-        message: `${data.discount_type === 'flat' ? `₹${data.discount_value}` : `${data.discount_value}%`} discount applied`
+        message: `${data.discount_type === 'flat' ? formatIndianRupee(data.discount_value) : `${data.discount_value}%`} discount applied`
       });
     } catch (error) {
       console.error('Error validating coupon:', error);
@@ -208,7 +216,6 @@ export function PaymentModal({ children }: PaymentModalProps) {
 
       if (error) throw error;
 
-      // Send email notification
       await supabase.functions.invoke('send-payment-notification', {
         body: {
           userName: formData.name,
@@ -267,25 +274,30 @@ export function PaymentModal({ children }: PaymentModalProps) {
                 <h3 className="text-lg font-semibold">Scan QR Code to Pay</h3>
               </div>
               {settings.qr_code_url && (
-                <div className="flex justify-center mb-4 p-4 bg-white rounded-lg">
-                  <img 
-                    src={settings.qr_code_url} 
-                    alt="Payment QR Code - SwingScribe" 
-                    className="w-64 h-64 border border-gray-300 rounded-lg shadow-lg"
-                    style={{ maxWidth: '100%', height: 'auto' }}
-                  />
+                <div className="flex justify-center mb-4">
+                  <div className="p-4 bg-white rounded-lg shadow-lg border border-gray-200">
+                    <img 
+                      src={settings.qr_code_url} 
+                      alt="Payment QR Code" 
+                      className="w-64 h-64 object-contain"
+                    />
+                  </div>
                 </div>
               )}
               <div className="space-y-2">
                 <div className="flex items-center justify-center gap-2">
                   {hasDiscount && (
-                    <span className="text-muted-foreground line-through">₹{settings.payment_amount}</span>
+                    <span className="text-muted-foreground line-through">
+                      {formatIndianRupee(parseFloat(settings.payment_amount))}
+                    </span>
                   )}
-                  <span className="text-2xl font-bold text-primary">₹{finalAmount}</span>
+                  <span className="text-2xl font-bold text-primary">
+                    {formatIndianRupee(finalAmount)}
+                  </span>
                 </div>
                 {hasDiscount && (
                   <Badge variant="secondary" className="bg-green-500/10 text-green-400 border-green-500/20">
-                    You saved ₹{parseFloat(settings.payment_amount) - finalAmount}!
+                    You saved {formatIndianRupee(parseFloat(settings.payment_amount) - finalAmount)}!
                   </Badge>
                 )}
               </div>
