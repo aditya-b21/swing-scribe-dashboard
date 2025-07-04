@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CreditCard, DollarSign, QrCode, Check, X, Eye, RefreshCw, Settings, Plus, Edit, Trash2 } from 'lucide-react';
+import { CreditCard, DollarSign, QrCode, Check, X, Eye, RefreshCw, Settings, Plus, Edit, Trash2, Upload, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -60,6 +60,9 @@ export function PaymentManagement() {
     usage_limit: '',
   });
   const [editingCoupon, setEditingCoupon] = useState<string | null>(null);
+
+  const [qrCodeFile, setQrCodeFile] = useState<File | null>(null);
+  const [qrCodePreview, setQrCodePreview] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSubmissions();
@@ -153,6 +156,30 @@ export function PaymentManagement() {
     } catch (error) {
       console.error('Error updating submission:', error);
       toast.error('Failed to update payment status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteSubmission = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this payment submission? This will revoke the user\'s community access and they will need to pay again.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('payment_submissions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success('Payment submission deleted successfully. User will need to pay again for community access.');
+      fetchSubmissions();
+    } catch (error) {
+      console.error('Error deleting submission:', error);
+      toast.error('Failed to delete payment submission');
     } finally {
       setLoading(false);
     }
@@ -255,6 +282,102 @@ export function PaymentManagement() {
     }
   };
 
+  const handleQrCodeSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file');
+      return;
+    }
+    
+    setQrCodeFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        setQrCodePreview(e.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const uploadQrCode = async (): Promise<string | null> => {
+    if (!qrCodeFile) return null;
+
+    try {
+      console.log('Starting QR code upload...');
+      
+      const fileExt = qrCodeFile.name.split('.').pop() || 'jpg';
+      const fileName = `qr-code-${Date.now()}.${fileExt}`;
+      const filePath = `qr-codes/${fileName}`;
+
+      const { data, error: uploadError } = await supabase.storage
+        .from('community-uploads')
+        .upload(filePath, qrCodeFile, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('community-uploads')
+        .getPublicUrl(filePath);
+
+      console.log('QR Code uploaded successfully:', publicUrl);
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading QR code:', error);
+      toast.error('Failed to upload QR code. Please try again.');
+      return null;
+    }
+  };
+
+  const updateQrCodeSetting = async () => {
+    try {
+      setLoading(true);
+      let qrCodeUrl = settings.qr_code_url;
+
+      if (qrCodeFile) {
+        const uploadedUrl = await uploadQrCode();
+        if (!uploadedUrl) {
+          setLoading(false);
+          return;
+        }
+        qrCodeUrl = uploadedUrl;
+      }
+
+      const { error } = await supabase
+        .from('payment_settings')
+        .upsert({ key: 'qr_code_url', value: qrCodeUrl }, { onConflict: 'key' });
+
+      if (error) throw error;
+
+      toast.success('QR Code updated successfully');
+      setQrCodeFile(null);
+      setQrCodePreview(null);
+      fetchSettings();
+    } catch (error) {
+      console.error('Error updating QR code:', error);
+      toast.error('Failed to update QR code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6 fade-in">
       <Tabs defaultValue="submissions" className="space-y-6">
@@ -352,6 +475,15 @@ export function PaymentManagement() {
                               </Button>
                             </>
                           )}
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => deleteSubmission(submission.id)}
+                            disabled={loading}
+                            title="Delete submission (user will need to pay again)"
+                          >
+                            <UserX className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
@@ -515,7 +647,7 @@ export function PaymentManagement() {
             <CardHeader>
               <CardTitle className="text-primary">Payment Settings</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label>Payment Amount</Label>
                 <div className="flex gap-2">
@@ -536,34 +668,60 @@ export function PaymentManagement() {
                   Current price: {formatIndianRupee(parseFloat(settings.payment_amount))}
                 </p>
               </div>
-              <div className="space-y-2">
-                <Label>QR Code URL</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={settings.qr_code_url}
-                    onChange={(e) => setSettings(prev => ({ ...prev, qr_code_url: e.target.value }))}
-                    placeholder="/path/to/qr-code.png"
-                  />
-                  <Button
-                    onClick={() => updateSettings('qr_code_url', settings.qr_code_url)}
-                    disabled={loading}
-                  >
-                    Update
-                  </Button>
+              
+              <div className="space-y-4">
+                <Label>QR Code for Payment</Label>
+                
+                {/* QR Code Upload Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <input
+                      id="qr-code-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleQrCodeSelect}
+                      className="hidden"
+                    />
+                    <Button
+                      onClick={() => document.getElementById('qr-code-input')?.click()}
+                      variant="outline"
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      {qrCodeFile ? 'Change QR Code' : 'Upload QR Code'}
+                    </Button>
+                    
+                    {qrCodeFile && (
+                      <Button
+                        onClick={updateQrCodeSetting}
+                        disabled={loading}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        {loading ? 'Updating...' : 'Update QR Code'}
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* QR Code Preview */}
+                  {(qrCodePreview || settings.qr_code_url) && (
+                    <div className="space-y-2">
+                      <Label>{qrCodePreview ? 'New QR Code Preview' : 'Current QR Code'}</Label>
+                      <div className="p-4 border border-primary/20 rounded-lg inline-block bg-white">
+                        <img 
+                          src={qrCodePreview || settings.qr_code_url} 
+                          alt="Payment QR Code" 
+                          className="w-48 h-48 object-contain"
+                        />
+                      </div>
+                      {qrCodePreview && (
+                        <p className="text-sm text-muted-foreground">
+                          Click "Update QR Code" to save this new QR code
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-              {settings.qr_code_url && (
-                <div className="mt-4">
-                  <Label>QR Code Preview</Label>
-                  <div className="mt-2 p-4 border border-primary/20 rounded-lg inline-block">
-                    <img 
-                      src={settings.qr_code_url} 
-                      alt="Payment QR Code" 
-                      className="w-48 h-48"
-                    />
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -218,6 +218,7 @@ export type Database = {
       payment_submissions: {
         Row: {
           admin_notes: string | null
+          can_see_password: boolean | null
           coupon_code: string | null
           created_at: string | null
           discount_amount: number | null
@@ -235,6 +236,7 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          can_see_password?: boolean | null
           coupon_code?: string | null
           created_at?: string | null
           discount_amount?: number | null
@@ -252,6 +254,7 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          can_see_password?: boolean | null
           coupon_code?: string | null
           created_at?: string | null
           discount_amount?: number | null

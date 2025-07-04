@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { MessageSquare, Users, Send, Pin, Upload, X, ImageIcon, Trash2, CreditCard, CheckCircle, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { CommunityPasswordPrompt } from './CommunityPasswordPrompt';
+import { CommunityPasswordBox } from './CommunityPasswordBox';
 
 interface CommunityPost {
   id: string;
@@ -496,6 +497,8 @@ export function CommunitySection() {
             </CardDescription>
           </CardHeader>
         </Card>
+        
+        <CommunityPasswordBox />
         <CommunityPasswordPrompt onPasswordSubmit={verifyPassword} />
       </div>
     );
@@ -522,6 +525,9 @@ export function CommunitySection() {
           </CardDescription>
         </CardHeader>
       </Card>
+
+      {/* Community Password Box for verified users */}
+      <CommunityPasswordBox />
 
       {/* Create New Post */}
       <Card className="bg-black border-2 border-blue-600 shadow-lg shadow-blue-600/20">

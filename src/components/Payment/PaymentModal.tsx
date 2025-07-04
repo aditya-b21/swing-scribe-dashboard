@@ -1,13 +1,12 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Upload, QrCode, CreditCard, Tag, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, CreditCard, Copy, CheckCircle, Tag, Percent, IndianRupee } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,57 +15,44 @@ interface PaymentModalProps {
   children: React.ReactNode;
 }
 
-interface PaymentSettings {
-  payment_amount: string;
-  qr_code_url: string;
-}
-
-interface CouponValidation {
-  isValid: boolean;
-  discount: number;
-  discountType: 'flat' | 'percentage';
+interface Coupon {
+  id: string;
   code: string;
-  message: string;
+  discount_type: 'flat' | 'percentage';
+  discount_value: number;
+  usage_limit?: number;
+  usage_count: number;
+  is_active: boolean;
 }
-
-// Default QR code URL - replace this with your actual QR code
-const DEFAULT_QR_CODE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKT2lDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAAHjanVNnVFPpFj333vRCS4iAlEtvUhUIIFJCi4AUkSYqIQkQSoghodkVUcERRUUEG8igiAOOjoCMFVEsDIoK2AfkIaKOg6OIisr74Xuja9a89+bN/rXXPues852zzwfACAyWSDNRNYAMqUIeEeCDx8TG4eQuQIEKJHAAEAizZCFz/SMBAPh+PDwrIsAHvgABeNMLCADATZvAMByH/w/qQplcAYCEAcB0kThLCIAUAEB6jkKmAEBGAYCdmCZTAKAEAGDLY2LjAFAtAGAnf+bTAICd+Jl7AQBblCEVAaCRACATZYhEAGg7AKzPVopFAFgwABRmS8Q5ANgtADBJV2ZIALC3AMDOEAuyAAgMADBRiIUpAAR7AGDIIyN4AISZABRG8lc88SuuEOcqAAB4mbI8uSQ5RYFbCC1xB1dXLh4ozkkXKxQ2YQJhmkAuwnmZGTKBNA/g88wAAKCRFRHgg/P9eM4Ors7ONo62Dl8t6r8G/yJiYuP+5c+rcEAAAOF0ftH+LC+zGoA7BoBt/qIl7gRoXgugdfeLZrIPQLUAoOnaV/Nw+H48PEWhkLnZ2eXk5NhKxEJbYcpXff5nwl/AV/1s+X48/Pf14L7iJIEyXYFHBPjgwsz0TKUcz5IJhGLc5o9H/LcL//wd0yLESWK5WCoU41EScY5EmozzMqUiiUKSKcUl0v9k4t8s+wM+3zUAsGo+AXuRLahdYwP2SycQWHTA4vcAAPK7b8HUKAgDgGiD4c93/+8//UegJQCAZkmScQAAXkQkLlTKsz/HCAAARKCBKrBBG/TBGCzABhzBBdzBC/xgNoRCJMTCQhBCCmSAHHJgKayCQiiGzbAdKmAv1EAdNMBRaIaTcA4uwlW4Dj1wD/phCJ7BKLyBCQRByAgTYSHaiAFiilgjjggXmYX4IcFIBBKLJCDJiBRRIkuRNUgxUopUIFVIHfI9cgI5h1xGupE7yAAygvyGvEcxlIGyUT3UDLVDuag3GoRGogvQZHQxmo8WoJvQcrQaPYw2oefQq2gP2o8+Q8cwwOgYBzPEbDAuxsNCsTgsCZNjy7EirAyrxhqwVqwDu4n1Y8+xdwQSgUXACTYEd0IgYR5BSFhMWE7YSKggHCQ0EdoJNwkDhFHCJyKTqEu0JroR+cQYYjIxh1hILCPWEo8TLxB7iEPENyQSiUMyJ7mQAkmxpFTSEtJG0m5SI+ksqZs0SBojk8naZGuyBzmULCAryIXkneTD5DPkG+Qh8lsKnWJAcaT4U+IoUspqShnlEOU05QZlmDJBVaOaUt2ooVQRNY9aQq2htlKvUYeoEzR1mjnNgxZJS6WtopXTGmgXaPdpr+h0uhHdlR5Ol9BX0svpR+iX6AP0dwwNhhWDx4hnKBmbGAcYZxl3GK+YTKYZ04sZx1QwNzHrmOeZD5lvVVgqtip8FZHKCpVKlSaVGyovVKmqpqreqgtV81XLVI+pXlN9rkZVM1PjqQnUlqtVqp1Q61MbU2epO6iHqmeob1Q/pH5Z/YkGWcNMw09DpFGgsV/jvMYgC2MZs3gsIWsNq4Z1gTXEJrHN2Xx2KruY/R27iz2qqaE5QzNKM1ezUvOUZj8H45hx+Jx0TgnnKKeX836K3hTvKeIpG6Y0TLkxZVxrqpaXllirSKtRq0frvTau7aedpr1Fu1n7gQ5Bx0onXCdHZ4/OBZ3nU9lT3acKpxZNPTr1ri6qa6UbobtEd79up+6Ynr5egJ5Mb6feeb3n+hx9L/1U/W36p/VHDFgGswwkBtsMzhg8xTVxbzwdL8fb8VFDXcNAQ6VhlWGX4SU";
 
 export function PaymentModal({ children }: PaymentModalProps) {
   const { user } = useAuth();
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [settings, setSettings] = useState<PaymentSettings>({ 
-    payment_amount: '999', 
-    qr_code_url: DEFAULT_QR_CODE 
-  });
+  const [isOpen, setIsOpen] = useState(false);
+  const [step, setStep] = useState<'payment' | 'upload'>('payment');
   const [formData, setFormData] = useState({
-    name: '',
-    email: user?.email || '',
+    fullName: '',
     utrReference: '',
     couponCode: '',
-    paymentProof: null as File | null,
   });
-  const [couponValidation, setCouponValidation] = useState<CouponValidation | null>(null);
-  const [showCouponField, setShowCouponField] = useState(false);
+  const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState(999);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [finalAmount, setFinalAmount] = useState(999);
+  const [discountAmount, setDiscountAmount] = useState(0);
 
   useEffect(() => {
-    if (open) {
+    if (isOpen) {
       fetchPaymentSettings();
-      if (user?.email) {
-        setFormData(prev => ({ ...prev, email: user.email! }));
+      if (user) {
+        setFormData(prev => ({
+          ...prev,
+          fullName: user.user_metadata?.full_name || user.email || ''
+        }));
       }
     }
-  }, [open, user]);
-
-  const formatIndianRupee = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  }, [isOpen, user]);
 
   const fetchPaymentSettings = async () => {
     try {
@@ -77,371 +63,423 @@ export function PaymentModal({ children }: PaymentModalProps) {
 
       if (error) throw error;
 
-      const settingsObj = data.reduce((acc, item) => ({
+      const settings = data.reduce((acc, item) => ({
         ...acc,
         [item.key]: item.value
-      }), {} as PaymentSettings);
+      }), {} as Record<string, string>);
 
-      setSettings(settingsObj);
+      const amount = parseFloat(settings.payment_amount || '999');
+      setPaymentAmount(amount);
+      setFinalAmount(amount);
+      setQrCodeUrl(settings.qr_code_url || '/lovable-uploads/25f34618-a2c2-4386-a490-72a69fa89c8b.png');
     } catch (error) {
       console.error('Error fetching payment settings:', error);
       toast.error('Failed to load payment settings');
     }
   };
 
-  const validateCoupon = async (code: string) => {
-    if (!code.trim()) {
-      setCouponValidation(null);
-      return;
-    }
+  const formatIndianRupee = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const applyCoupon = async () => {
+    if (!formData.couponCode.trim()) return;
 
     try {
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
-        .eq('code', code.toUpperCase())
+        .eq('code', formData.couponCode.toUpperCase())
         .eq('is_active', true)
         .single();
 
       if (error || !data) {
-        setCouponValidation({
-          isValid: false,
-          discount: 0,
-          discountType: 'flat' as const,
-          code,
-          message: 'Invalid or expired coupon code'
-        });
+        toast.error('Invalid or expired coupon code');
         return;
       }
 
-      if (data.expiry_date && new Date(data.expiry_date) < new Date()) {
-        setCouponValidation({
-          isValid: false,
-          discount: 0,
-          discountType: 'flat',
-          code,
-          message: 'Coupon has expired'
-        });
+      const coupon = data as Coupon;
+
+      // Check usage limit
+      if (coupon.usage_limit && coupon.usage_count >= coupon.usage_limit) {
+        toast.error('Coupon usage limit exceeded');
         return;
       }
 
-      if (data.usage_limit && data.usage_count >= data.usage_limit) {
-        setCouponValidation({
-          isValid: false,
-          discount: 0,
-          discountType: 'flat',
-          code,
-          message: 'Coupon usage limit reached'
-        });
-        return;
+      // Calculate discount
+      let discount = 0;
+      if (coupon.discount_type === 'flat') {
+        discount = Math.min(coupon.discount_value, paymentAmount);
+      } else {
+        discount = Math.round((paymentAmount * coupon.discount_value) / 100);
       }
 
-      setCouponValidation({
-        isValid: true,
-        discount: data.discount_value,
-        discountType: data.discount_type as 'flat' | 'percentage',
-        code: data.code,
-        message: `${data.discount_type === 'flat' ? formatIndianRupee(data.discount_value) : `${data.discount_value}%`} discount applied`
-      });
+      const newFinalAmount = Math.max(0, paymentAmount - discount);
+
+      setAppliedCoupon(coupon);
+      setDiscountAmount(discount);
+      setFinalAmount(newFinalAmount);
+      
+      toast.success(`Coupon applied! You saved ${formatIndianRupee(discount)}`);
     } catch (error) {
-      console.error('Error validating coupon:', error);
-      setCouponValidation({
-        isValid: false,
-        discount: 0,
-        discountType: 'flat',
-        code,
-        message: 'Error validating coupon'
-      });
+      console.error('Error applying coupon:', error);
+      toast.error('Failed to apply coupon');
     }
   };
 
-  const calculateFinalAmount = () => {
-    const baseAmount = parseFloat(settings.payment_amount);
-    if (!couponValidation?.isValid) return baseAmount;
-
-    if (couponValidation.discountType === 'flat') {
-      return Math.max(0, baseAmount - couponValidation.discount);
-    } else {
-      return Math.max(0, baseAmount - (baseAmount * couponValidation.discount / 100));
-    }
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+    setFinalAmount(paymentAmount);
+    setFormData(prev => ({ ...prev, couponCode: '' }));
+    toast.success('Coupon removed');
   };
 
-  const handleFileUpload = async (file: File) => {
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copied to clipboard!');
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file');
+      return;
+    }
+    
+    setPaymentProof(file);
+  };
+
+  const uploadProofImage = async (file: File): Promise<string | null> => {
     try {
-      const fileName = `payment-proof-${Date.now()}-${file.name}`;
-      const { data, error } = await supabase.storage
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `payment-proofs/${fileName}`;
+
+      const { data, error: uploadError } = await supabase.storage
         .from('community-uploads')
-        .upload(fileName, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (error) throw error;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
-      const { data: urlData } = supabase.storage
+      const { data: { publicUrl } } = supabase.storage
         .from('community-uploads')
-        .getPublicUrl(fileName);
+        .getPublicUrl(filePath);
 
-      return urlData.publicUrl;
+      return publicUrl;
     } catch (error) {
-      console.error('Error uploading file:', error);
-      throw error;
+      console.error('Error uploading proof:', error);
+      return null;
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitPayment = async () => {
     if (!user) {
       toast.error('Please login to submit payment');
       return;
     }
 
+    if (!formData.fullName.trim() || !formData.utrReference.trim()) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
     setLoading(true);
     try {
-      let paymentProofUrl = null;
+      let proofUrl = null;
       
-      if (formData.paymentProof) {
-        paymentProofUrl = await handleFileUpload(formData.paymentProof);
+      if (paymentProof) {
+        proofUrl = await uploadProofImage(paymentProof);
+        if (!proofUrl) {
+          toast.error('Failed to upload payment proof');
+          setLoading(false);
+          return;
+        }
       }
 
-      const baseAmount = parseFloat(settings.payment_amount);
-      const finalAmount = calculateFinalAmount();
-      const discountAmount = baseAmount - finalAmount;
+      const submissionData = {
+        user_id: user.id,
+        user_name: formData.fullName.trim(),
+        user_email: user.email || '',
+        utr_reference: formData.utrReference.trim(),
+        payment_proof_url: proofUrl,
+        payment_amount: paymentAmount,
+        coupon_code: appliedCoupon ? appliedCoupon.code : null,
+        discount_amount: discountAmount,
+        final_amount: finalAmount,
+        status: 'pending',
+        created_at: new Date().toISOString()
+      };
 
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from('payment_submissions')
-        .insert({
-          user_id: user.id,
-          user_name: formData.name,
-          user_email: formData.email,
-          utr_reference: formData.utrReference,
-          payment_proof_url: paymentProofUrl,
-          payment_amount: baseAmount,
-          coupon_code: couponValidation?.isValid ? couponValidation.code : null,
-          discount_amount: discountAmount,
-          final_amount: finalAmount,
-        });
+        .insert(submissionData);
 
-      if (error) throw error;
-
-      // Send email notification immediately
-      console.log('Sending payment notification email...');
-      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-payment-notification', {
-        body: {
-          userName: formData.name,
-          userEmail: formData.email,
-          utrReference: formData.utrReference,
-          paymentAmount: baseAmount,
-          finalAmount,
-          couponCode: couponValidation?.isValid ? couponValidation.code : null,
-          discountAmount: discountAmount,
-          paymentProofUrl,
-          submissionTime: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-        },
-      });
-
-      if (emailError) {
-        console.error('Email notification error:', emailError);
-        toast.error('Payment submitted but email notification failed');
-      } else {
-        console.log('Email notification sent successfully:', emailData);
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        throw insertError;
       }
 
-      toast.success('Payment submission sent! Admin will verify and grant access.');
-      setOpen(false);
-      setFormData({
-        name: '',
-        email: user.email || '',
-        utrReference: '',
-        couponCode: '',
-        paymentProof: null,
-      });
-      setCouponValidation(null);
-      setShowCouponField(false);
-    } catch (error: any) {
+      // Send payment notification
+      try {
+        await supabase.functions.invoke('send-payment-notification', {
+          body: {
+            userName: formData.fullName.trim(),
+            userEmail: user.email || '',
+            utrReference: formData.utrReference.trim(),
+            paymentAmount: paymentAmount,
+            finalAmount: finalAmount,
+            couponCode: appliedCoupon ? appliedCoupon.code : null,
+            discountAmount: discountAmount,
+            paymentProofUrl: proofUrl,
+            submissionTime: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+          }
+        });
+      } catch (notificationError) {
+        console.error('Notification error:', notificationError);
+        // Don't fail the submission if notification fails
+      }
+
+      toast.success('Payment submitted successfully! We will verify it shortly.');
+      
+      // Reset form
+      setFormData({ fullName: '', utrReference: '', couponCode: '' });
+      setPaymentProof(null);
+      setAppliedCoupon(null);
+      setDiscountAmount(0);
+      setFinalAmount(paymentAmount);
+      setStep('payment');
+      setIsOpen(false);
+    } catch (error) {
       console.error('Error submitting payment:', error);
-      toast.error('Failed to submit payment: ' + (error.message || 'Unknown error'));
+      toast.error('Failed to submit payment. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const finalAmount = calculateFinalAmount();
-  const hasDiscount = couponValidation?.isValid && finalAmount < parseFloat(settings.payment_amount);
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-primary/20">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-black border-2 border-blue-600">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-primary">
-            <CreditCard className="w-5 h-5" />
-            Subscribe to Community Access
+          <DialogTitle className="text-2xl text-blue-400 flex items-center gap-2">
+            <CreditCard className="w-6 h-6" />
+            Community Access Payment
           </DialogTitle>
         </DialogHeader>
-
-        <div className="space-y-6">
-          {/* QR Code Section */}
-          <Card className="border-primary/20">
-            <CardContent className="p-6 text-center">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <QrCode className="w-5 h-5 text-primary" />
-                <h3 className="text-lg font-semibold">Scan QR Code to Pay</h3>
-              </div>
-              <div className="flex justify-center mb-4">
-                <div className="p-4 bg-white rounded-lg shadow-lg border border-gray-200">
-                  <img 
-                    src={settings.qr_code_url || DEFAULT_QR_CODE} 
-                    alt="Payment QR Code" 
-                    className="w-64 h-64 object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = DEFAULT_QR_CODE;
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-center gap-2">
-                  {hasDiscount && (
-                    <span className="text-muted-foreground line-through">
-                      {formatIndianRupee(parseFloat(settings.payment_amount))}
-                    </span>
-                  )}
-                  <span className="text-2xl font-bold text-primary">
-                    {formatIndianRupee(finalAmount)}
-                  </span>
-                </div>
-                {hasDiscount && (
-                  <Badge variant="secondary" className="bg-green-500/10 text-green-400 border-green-500/20">
-                    You saved {formatIndianRupee(parseFloat(settings.payment_amount) - finalAmount)}!
-                  </Badge>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Separator />
-
-          {/* Payment Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Enter your full name"
-                  required
-                  className="bg-background border-primary/20 focus:border-primary"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="Enter your email"
-                  required
-                  className="bg-background border-primary/20 focus:border-primary"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="utr">UTR/Transaction Reference ID *</Label>
-              <Input
-                id="utr"
-                value={formData.utrReference}
-                onChange={(e) => setFormData(prev => ({ ...prev, utrReference: e.target.value }))}
-                placeholder="Enter UTR or Transaction ID from your payment app"
-                required
-                className="bg-background border-primary/20 focus:border-primary"
-              />
-            </div>
-
-            {/* Coupon Section */}
-            <div className="space-y-3">
-              {!showCouponField ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowCouponField(true)}
-                  className="w-full border-primary/20 hover:bg-primary/5"
-                >
-                  <Tag className="w-4 h-4 mr-2" />
-                  Have a coupon code?
-                </Button>
-              ) : (
-                <div className="space-y-2">
-                  <Label htmlFor="coupon">Coupon Code</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="coupon"
-                      value={formData.couponCode}
-                      onChange={(e) => {
-                        const value = e.target.value.toUpperCase();
-                        setFormData(prev => ({ ...prev, couponCode: value }));
-                        validateCoupon(value);
-                      }}
-                      placeholder="Enter coupon code"
-                      className="bg-background border-primary/20 focus:border-primary"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setShowCouponField(false);
-                        setFormData(prev => ({ ...prev, couponCode: '' }));
-                        setCouponValidation(null);
-                      }}
-                    >
-                      Cancel
-                    </Button>
+        
+        <div className="space-y-6 p-2">
+          {step === 'payment' && (
+            <>
+              {/* Payment Details */}
+              <Card className="bg-gray-900 border-blue-400/30">
+                <CardHeader>
+                  <CardTitle className="text-blue-400 flex items-center gap-2">
+                    <IndianRupee className="w-5 h-5" />
+                    Payment Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4 text-white">
+                    <div>
+                      <span className="text-gray-400">Original Amount:</span>
+                      <p className="text-xl font-bold">{formatIndianRupee(paymentAmount)}</p>
+                    </div>
+                    {appliedCoupon && (
+                      <div>
+                        <span className="text-gray-400">Discount:</span>
+                        <p className="text-xl font-bold text-green-400">-{formatIndianRupee(discountAmount)}</p>
+                      </div>
+                    )}
                   </div>
-                  {couponValidation && (
-                    <div className={`flex items-center gap-2 text-sm ${
-                      couponValidation.isValid ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {couponValidation.isValid ? (
-                        <CheckCircle className="w-4 h-4" />
-                      ) : (
-                        <AlertCircle className="w-4 h-4" />
-                      )}
-                      {couponValidation.message}
+                  <div className="border-t border-gray-700 pt-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-lg">Final Amount:</span>
+                      <span className="text-2xl font-bold text-blue-400">{formatIndianRupee(finalAmount)}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Coupon Section */}
+              <Card className="bg-gray-900 border-blue-400/30">
+                <CardHeader>
+                  <CardTitle className="text-blue-400 flex items-center gap-2">
+                    <Tag className="w-5 h-5" />
+                    Coupon Code
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {!appliedCoupon ? (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter coupon code (optional)"
+                        value={formData.couponCode}
+                        onChange={(e) => setFormData(prev => ({ ...prev, couponCode: e.target.value.toUpperCase() }))}
+                        className="bg-gray-800 border-gray-600 text-white"
+                      />
+                      <Button onClick={applyCoupon} variant="outline" className="border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-black">
+                        Apply
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between p-3 bg-green-900/30 border border-green-400/30 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="border-green-400 text-green-400">
+                          {appliedCoupon.code}
+                        </Badge>
+                        <span className="text-green-400">
+                          {appliedCoupon.discount_type === 'flat' 
+                            ? formatIndianRupee(appliedCoupon.discount_value)
+                            : `${appliedCoupon.discount_value}%`} off
+                        </span>
+                      </div>
+                      <Button onClick={removeCoupon} variant="ghost" size="sm" className="text-red-400 hover:bg-red-400 hover:text-black">
+                        Remove
+                      </Button>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* QR Code */}
+              <Card className="bg-gray-900 border-blue-400/30">
+                <CardHeader>
+                  <CardTitle className="text-blue-400">Payment QR Code</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <div className="bg-white p-4 rounded-lg inline-block mb-4">
+                    <img 
+                      src={qrCodeUrl} 
+                      alt="Payment QR Code" 
+                      className="w-48 h-48 object-contain"
+                      onError={(e) => {
+                        console.error('QR Code failed to load:', qrCodeUrl);
+                        // Fallback to default QR code
+                        (e.target as HTMLImageElement).src = '/lovable-uploads/25f34618-a2c2-4386-a490-72a69fa89c8b.png';
+                      }}
+                    />
+                  </div>
+                  <p className="text-gray-300 mb-4">
+                    Scan this QR code with your UPI app to pay {formatIndianRupee(finalAmount)}
+                  </p>
+                  <Button 
+                    onClick={() => copyToClipboard('adityabarod807@paytm')}
+                    variant="outline"
+                    className="border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-black"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy UPI ID: adityabarod807@paytm
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Button 
+                onClick={() => setStep('upload')}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3"
+              >
+                Next: Upload Payment Proof
+              </Button>
+            </>
+          )}
+
+          {step === 'upload' && (
+            <>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-white">Full Name *</Label>
+                  <Input
+                    value={formData.fullName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                    placeholder="Enter your full name"
+                    className="bg-gray-800 border-gray-600 text-white"
+                  />
                 </div>
-              )}
-            </div>
 
-            {/* File Upload */}
-            <div className="space-y-2">
-              <Label htmlFor="proof">Payment Screenshot (Optional)</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="proof"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    paymentProof: e.target.files?.[0] || null 
-                  }))}
-                  className="bg-background border-primary/20 focus:border-primary"
-                />
-                <Upload className="w-4 h-4 text-muted-foreground" />
+                <div className="space-y-2">
+                  <Label className="text-white">UTR/Transaction Reference *</Label>
+                  <Input
+                    value={formData.utrReference}
+                    onChange={(e) => setFormData(prev => ({ ...prev, utrReference: e.target.value }))}
+                    placeholder="Enter UTR or transaction reference"
+                    className="bg-gray-800 border-gray-600 text-white"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-white">Payment Proof (Optional)</Label>
+                  <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="payment-proof"
+                    />
+                    <label
+                      htmlFor="payment-proof"
+                      className="cursor-pointer flex flex-col items-center gap-2"
+                    >
+                      <Upload className="w-8 h-8 text-gray-400" />
+                      <span className="text-gray-400">
+                        {paymentProof ? paymentProof.name : 'Click to upload payment screenshot'}
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={() => setStep('payment')}
+                    variant="outline"
+                    className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800"
+                  >
+                    Back
+                  </Button>
+                  <Button 
+                    onClick={submitPayment}
+                    disabled={loading || !formData.fullName.trim() || !formData.utrReference.trim()}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Submit Payment
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              {loading ? 'Submitting...' : 'Submit Payment Details'}
-            </Button>
-          </form>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
