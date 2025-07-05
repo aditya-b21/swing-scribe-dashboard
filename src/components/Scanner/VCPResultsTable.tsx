@@ -1,7 +1,8 @@
-
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Volume, Zap, Target, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, Volume, Zap, Target, Activity, Search } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Input } from '@/components/ui/input';
 
 interface VCPResult {
   id: string;
@@ -26,10 +27,32 @@ interface VCPResultsTableProps {
 }
 
 export function VCPResultsTable({ results, isLoading }: VCPResultsTableProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [exchangeFilter, setExchangeFilter] = useState<'ALL' | 'NSE' | 'BSE'>('ALL');
+
+  // Filter and search results
+  const filteredResults = useMemo(() => {
+    let filtered = results;
+    
+    // Filter by exchange
+    if (exchangeFilter !== 'ALL') {
+      filtered = filtered.filter(result => result.exchange === exchangeFilter);
+    }
+    
+    // Search by symbol
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(result => 
+        result.symbol.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  }, [results, searchQuery, exchangeFilter]);
+
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {[...Array(5)].map((_, i) => (
+        {[...Array(8)].map((_, i) => (
           <div key={i} className="animate-pulse">
             <div className="h-16 bg-slate-700/50 rounded-lg"></div>
           </div>
@@ -45,8 +68,8 @@ export function VCPResultsTable({ results, isLoading }: VCPResultsTableProps) {
           <Target className="w-12 h-12 mx-auto opacity-50" />
           <h3 className="text-lg font-medium">No VCP Patterns Found</h3>
           <p className="text-sm">
-            No stocks currently match Mark Minervini's strict VCP criteria.<br/>
-            Try running the scanner again after the next market close.
+            No stocks currently match Mark Minervini's strict VCP criteria from the last market scan.<br/>
+            Try running the Full Market Scanner to get fresh results.
           </p>
         </div>
       </Card>
@@ -64,15 +87,58 @@ export function VCPResultsTable({ results, isLoading }: VCPResultsTableProps) {
 
   return (
     <div className="space-y-4">
+      {/* Enhanced Search and Filter Controls */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            placeholder="Search stocks by symbol..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 bg-slate-800/50 border-slate-600 text-white placeholder-slate-400"
+          />
+        </div>
+        <div className="flex gap-2">
+          {['ALL', 'NSE', 'BSE'].map((exchange) => (
+            <button
+              key={exchange}
+              onClick={() => setExchangeFilter(exchange as 'ALL' | 'NSE' | 'BSE')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                exchangeFilter === exchange
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
+              {exchange}
+              {exchange === 'ALL' ? ` (${results.length})` : ` (${results.filter(r => r.exchange === exchange).length})`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Results Summary */}
+      <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+        <p className="text-blue-300 text-sm">
+          <strong>Showing {filteredResults.length.toLocaleString()} VCP results</strong> 
+          {searchQuery && ` matching "${searchQuery}"`}
+          {exchangeFilter !== 'ALL' && ` from ${exchangeFilter} exchange`}
+          {results.length > 0 && ` • Total scanned: ${results.length.toLocaleString()} patterns`}
+        </p>
+      </div>
+
       {/* Mobile/Tablet responsive cards */}
       <div className="block lg:hidden space-y-4">
-        {results.map((result) => (
+        {filteredResults.map((result) => (
           <Card key={result.id} className="p-4 bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-colors">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-white text-lg">{result.symbol}</h3>
-                  <Badge variant="outline" className="text-xs border-slate-600 text-slate-300">
+                  <Badge variant="outline" className={`text-xs ${
+                    result.exchange === 'NSE' 
+                      ? 'border-green-500/30 text-green-400' 
+                      : 'border-blue-500/30 text-blue-400'
+                  }`}>
                     {result.exchange}
                   </Badge>
                 </div>
@@ -134,7 +200,7 @@ export function VCPResultsTable({ results, isLoading }: VCPResultsTableProps) {
         ))}
       </div>
 
-      {/* Desktop table */}
+      {/* Enhanced Desktop table */}
       <div className="hidden lg:block">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -152,7 +218,7 @@ export function VCPResultsTable({ results, isLoading }: VCPResultsTableProps) {
               </tr>
             </thead>
             <tbody>
-              {results.map((result, index) => {
+              {filteredResults.map((result, index) => {
                 // Calculate VCP Score (out of 10 criteria met)
                 let vcpScore = 8; // Base criteria always met for filtered results
                 if (result.breakout_signal) vcpScore += 2;
@@ -167,7 +233,11 @@ export function VCPResultsTable({ results, isLoading }: VCPResultsTableProps) {
                     <td className="p-3">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-white">{result.symbol}</span>
-                        <Badge variant="outline" className="text-xs border-slate-600 text-slate-400">
+                        <Badge variant="outline" className={`text-xs ${
+                          result.exchange === 'NSE' 
+                            ? 'border-green-500/30 text-green-400' 
+                            : 'border-blue-500/30 text-blue-400'
+                        }`}>
                           {result.exchange}
                         </Badge>
                       </div>
@@ -250,7 +320,7 @@ export function VCPResultsTable({ results, isLoading }: VCPResultsTableProps) {
         </div>
         
         <div className="mt-4 text-xs text-slate-400 text-center">
-          <p>All displayed stocks have passed Mark Minervini's strict VCP filtering criteria based on last market close data.</p>
+          <p>All displayed stocks have passed Mark Minervini's strict VCP filtering criteria • Data from last market close • Real-time API integration</p>
         </div>
       </div>
     </div>

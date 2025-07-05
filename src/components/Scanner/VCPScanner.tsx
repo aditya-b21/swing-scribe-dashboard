@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Zap, Download, RefreshCw, Calendar, TrendingUp, BarChart3, Clock, Database } from 'lucide-react';
+import { Zap, Download, RefreshCw, Calendar, TrendingUp, BarChart3, Clock, Database, Globe, Settings } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { VCPResultsTable } from './VCPResultsTable';
@@ -74,7 +73,7 @@ export function VCPScanner() {
         .from('vcp_scan_results')
         .select('*')
         .order('scan_date', { ascending: false })
-        .limit(500); // Increased limit for full market results
+        .limit(1000); // Increased limit for full market results
 
       if (error) throw error;
       return data as VCPScanResult[];
@@ -88,7 +87,7 @@ export function VCPScanner() {
       const { data, error } = await supabase
         .from('scan_metadata')
         .select('*')
-        .eq('scan_type', 'VCP')
+        .eq('scan_type', 'VCP_FULL_MARKET')
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
@@ -98,7 +97,7 @@ export function VCPScanner() {
     },
   });
 
-  // Run Full VCP Scanner mutation
+  // Enhanced Full Market VCP Scanner mutation
   const runScannerMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('run-vcp-scanner', {
@@ -109,30 +108,40 @@ export function VCPScanner() {
       return data;
     },
     onSuccess: (data) => {
-      toast.success(`🎯 Full Market VCP Scan Complete! 
-        Scanned ${data.total_scanned} stocks (NSE: ${data.nse_stocks}, BSE: ${data.bse_stocks}).
-        Found ${data.results_count} VCP patterns for ${data.scan_date}.
-        Success Rate: ${data.breakdown?.success_rate}`);
+      const successMessage = `🚀 FULL MARKET VCP SCAN COMPLETE! 
+      
+📊 SCANNED: ${data.total_scanned?.toLocaleString()} stocks from entire NSE + BSE universe
+📈 NSE: ${data.nse_stocks?.toLocaleString()} stocks | BSE: ${data.bse_stocks?.toLocaleString()} stocks  
+🎯 VCP PATTERNS FOUND: ${data.results_count} qualifying stocks
+⚡ SUCCESS RATE: ${data.breakdown?.success_rate}
+📅 DATA: ${data.scan_date} (Last Market Close)
+⏱️ DURATION: ${data.scan_duration}s
+🔥 API STATUS: ${data.api_status ? 'Real-time data integration active' : 'Mock data mode'}`;
+
+      toast.success(successMessage, { duration: 8000 });
       queryClient.invalidateQueries({ queryKey: ['vcp-scan-results'] });
       queryClient.invalidateQueries({ queryKey: ['scan-metadata'] });
       setIsScanning(false);
     },
     onError: (error) => {
-      console.error('Full Scanner error:', error);
-      toast.error('Full Market Scanner failed to run. Please try again.');
+      console.error('Full Market Scanner error:', error);
+      toast.error('🚨 Full Market Scanner encountered an error. Please check API configuration and try again.', { duration: 6000 });
       setIsScanning(false);
     },
   });
 
   const handleRunFullScanner = async () => {
     setIsScanning(true);
-    toast.info('🔍 Starting Full Market VCP Scanner for ALL NSE & BSE stocks... This will take a few minutes as we scan the entire market universe.');
+    toast.info('🔥 LAUNCHING FULL MARKET VCP SCANNER...', {
+      description: `Scanning ALL ${(1800 + 5000).toLocaleString()}+ NSE & BSE stocks with real-time data. This comprehensive scan will take several minutes to process the entire market universe.`,
+      duration: 5000
+    });
     runScannerMutation.mutate();
   };
 
   const handleExportCSV = () => {
     if (!scanResults || scanResults.length === 0) {
-      toast.error('No data to export');
+      toast.error('No VCP results available for export');
       return;
     }
 
@@ -176,11 +185,11 @@ export function VCPScanner() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `full_market_vcp_scan_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `complete_market_vcp_scan_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
     
-    toast.success('Full Market VCP Results exported to CSV');
+    toast.success(`📥 Full Market VCP Results exported! ${scanResults.length} stocks included.`);
   };
 
   const lastTradingDay = getLastTradingDay();
@@ -195,28 +204,35 @@ export function VCPScanner() {
 
   return (
     <div className="space-y-6">
-      {/* Header Card */}
-      <Card className="glass-effect">
+      {/* Enhanced Header Card */}
+      <Card className="glass-effect border-l-4 border-l-green-500">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white text-2xl">
-            <Database className="w-6 h-6 text-yellow-400" />
-            VCP Algo Inbuilt Scanner - Full Market Coverage
+            <Globe className="w-6 h-6 text-green-400" />
+            Enhanced VCP Full Market Scanner
+            <span className="text-sm bg-green-500/20 text-green-400 px-3 py-1 rounded-full border border-green-500/30">
+              Complete Universe Coverage
+            </span>
           </CardTitle>
           <p className="text-slate-400">
-            Professional Volatility Contraction Pattern scanner covering ALL NSE & BSE listed stocks based on Mark Minervini's methodology
+            Professional-grade Volatility Contraction Pattern scanner with <strong>FULL market coverage</strong> across entire NSE & BSE universe using Mark Minervini's algorithmic methodology
           </p>
-          <div className="flex items-center gap-4 mt-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 text-sm">
             <div className="flex items-center gap-2 text-green-400">
-              <Clock className="w-4 h-4" />
-              <span>Market Close: 3:30 PM IST</span>
+              <Database className="w-4 h-4" />
+              <span>NSE: 1,800+ stocks</span>
             </div>
             <div className="flex items-center gap-2 text-blue-400">
-              <Calendar className="w-4 h-4" />
-              <span>Last Trading Day: {lastTradingDay}</span>
+              <Database className="w-4 h-4" />
+              <span>BSE: 5,000+ stocks</span>
             </div>
             <div className="flex items-center gap-2 text-purple-400">
-              <Database className="w-4 h-4" />
-              <span>Coverage: All NSE + BSE Stocks</span>
+              <Clock className="w-4 h-4" />
+              <span>Last Trading Day: {lastTradingDay}</span>
+            </div>
+            <div className="flex items-center gap-2 text-orange-400">
+              <Settings className="w-4 h-4" />
+              <span>Real-time API Integration</span>
             </div>
           </div>
         </CardHeader>
@@ -225,45 +241,54 @@ export function VCPScanner() {
       {/* Enhanced Control Panel */}
       <Card className="glass-effect">
         <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="flex items-center gap-4 text-slate-300">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                <span className="text-sm">Last Full Scan: {latestScanDate}</span>
+          <div className="flex flex-col lg:flex-row gap-6 items-start justify-between">
+            <div className="flex-1 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-slate-300">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm">Last Full Scan: <strong>{latestScanDate}</strong></span>
+                </div>
+                {scanMetadata && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-green-400" />
+                      <span className="text-sm">
+                        VCP Results: <strong>{scanMetadata.filtered_results_count?.toLocaleString()}</strong>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-purple-400" />
+                      <span className="text-sm">
+                        Universe: <strong>{scanMetadata.total_stocks_scanned?.toLocaleString()}</strong> stocks
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
-              {scanMetadata && (
-                <>
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4" />
-                    <span className="text-sm">
-                      {scanMetadata.filtered_results_count} VCP patterns found
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Database className="w-4 h-4" />
-                    <span className="text-sm">
-                      {scanMetadata.total_stocks_scanned?.toLocaleString()} stocks scanned
-                    </span>
-                  </div>
-                </>
-              )}
+              
+              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <p className="text-blue-300 text-xs">
+                  <strong>FULL MARKET COVERAGE:</strong> This scanner processes the <em>complete universe</em> of NSE & BSE listed stocks, 
+                  ensuring zero VCP opportunities are missed across Indian equity markets. Real-time data integration with multiple API sources.
+                </p>
+              </div>
             </div>
 
             <div className="flex gap-3">
               <Button
                 onClick={handleRunFullScanner}
                 disabled={isScanning}
-                className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium px-6"
+                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium px-8 py-3 text-base shadow-lg"
               >
                 {isScanning ? (
                   <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Scanning All Stocks...
+                    <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                    Scanning Full Market...
                   </>
                 ) : (
                   <>
-                    <Database className="w-4 h-4 mr-2" />
-                    Run Full Scanner (All NSE + BSE)
+                    <Globe className="w-5 h-5 mr-2" />
+                    Run Full Market Scanner
                   </>
                 )}
               </Button>
@@ -272,10 +297,10 @@ export function VCPScanner() {
                 onClick={handleExportCSV}
                 variant="outline"
                 disabled={!scanResults || scanResults.length === 0}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                className="border-slate-600 text-slate-300 hover:bg-slate-700 px-6"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Export CSV
+                Export Results
               </Button>
             </div>
           </div>
@@ -285,25 +310,38 @@ export function VCPScanner() {
       {/* Enhanced VCP Filter Conditions Info */}
       <Card className="glass-effect">
         <CardHeader>
-          <CardTitle className="text-white text-lg">Mark Minervini's VCP Filter Conditions (Applied to ALL Stocks)</CardTitle>
+          <CardTitle className="text-white text-lg flex items-center gap-2">
+            <Zap className="w-5 h-5 text-yellow-400" />
+            Mark Minervini's VCP Algorithm (Applied to ALL 6,800+ Stocks)
+          </CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-slate-300 space-y-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div>✅ ATR(14) &lt; ATR(14) 10 days ago</div>
-            <div>✅ ATR(14) / Close &lt; 0.08 (8% volatility limit)</div>
-            <div>✅ Close &gt; 0.75 × 52-week High</div>
-            <div>✅ EMA(50) &gt; EMA(150) &gt; EMA(200)</div>
-            <div>✅ Close &gt; EMA(50)</div>
-            <div>✅ Close &gt; ₹10</div>
-            <div>✅ Close × Volume &gt; ₹1 Crore</div>
-            <div>✅ Volume &lt; 20-day average</div>
-            <div>✅ (Max 5-day High - Min 5-day Low) / Close &lt; 0.08</div>
-            <div>🎯 Breakout: Close crosses 20-day High + Volume spike</div>
+        <CardContent className="text-sm text-slate-300 space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="p-3 bg-green-500/10 border border-green-500/20 rounded">
+              <strong className="text-green-400">✅ Technical Filters:</strong>
+              <ul className="mt-2 space-y-1 text-xs">
+                <li>• ATR(14) &lt; ATR(14) 10 days ago</li>
+                <li>• ATR(14) / Close &lt; 0.08 (8% volatility limit)</li>
+                <li>• Close &gt; 0.75 × 52-week High</li>
+                <li>• EMA(50) &gt; EMA(150) &gt; EMA(200)</li>
+                <li>• Close &gt; EMA(50)</li>
+              </ul>
+            </div>
+            <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded">
+              <strong className="text-blue-400">💰 Fundamental Filters:</strong>
+              <ul className="mt-2 space-y-1 text-xs">
+                <li>• Close &gt; ₹10 (Minimum price)</li>
+                <li>• Close × Volume &gt; ₹1 Crore (Liquidity)</li>
+                <li>• Volume &lt; 20-day average (Contraction)</li>
+                <li>• 5-day price range / Close &lt; 0.08</li>
+                <li>• 🎯 Breakout: Close crosses 20-day High + Volume spike</li>
+              </ul>
+            </div>
           </div>
-          <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded">
-            <p className="text-blue-300 text-xs">
-              <strong>Full Market Coverage:</strong> This scanner processes the entire universe of NSE & BSE listed stocks (~1800+ NSE, ~5000+ BSE), 
-              ensuring no VCP opportunity is missed across the Indian equity markets.
+          <div className="mt-4 p-4 bg-purple-500/10 border border-purple-500/20 rounded">
+            <p className="text-purple-300 text-sm">
+              <strong>🚀 ENHANCED FEATURES:</strong> Multi-API integration (Alpha Vantage, Twelve Data, EOD Historical), 
+              real-time market data synchronization, comprehensive universe coverage, and professional-grade accuracy for serious traders.
             </p>
           </div>
         </CardContent>
@@ -312,7 +350,7 @@ export function VCPScanner() {
       {/* Scan Statistics */}
       <VCPScanStats metadata={scanMetadata} />
 
-      {/* Results Table */}
+      {/* Enhanced Results Table */}
       <Card className="glass-effect">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
@@ -320,10 +358,13 @@ export function VCPScanner() {
             Full Market VCP Scanner Results
             {scanResults && scanResults.length > 0 && (
               <span className="text-sm text-slate-400 ml-2">
-                ({scanResults.length} stocks match VCP criteria from full market scan)
+                ({scanResults.length.toLocaleString()} VCP patterns from complete market scan)
               </span>
             )}
           </CardTitle>
+          <p className="text-slate-400 text-sm">
+            Displaying all stocks that passed Mark Minervini's strict VCP criteria from the last full market scan
+          </p>
         </CardHeader>
         <CardContent>
           <VCPResultsTable 
