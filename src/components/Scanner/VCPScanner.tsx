@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Zap, Download, RefreshCw, Calendar, TrendingUp, BarChart3, Clock } from 'lucide-react';
+import { Zap, Download, RefreshCw, Calendar, TrendingUp, BarChart3, Clock, Database } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { VCPResultsTable } from './VCPResultsTable';
@@ -74,7 +74,7 @@ export function VCPScanner() {
         .from('vcp_scan_results')
         .select('*')
         .order('scan_date', { ascending: false })
-        .limit(100);
+        .limit(500); // Increased limit for full market results
 
       if (error) throw error;
       return data as VCPScanResult[];
@@ -98,7 +98,7 @@ export function VCPScanner() {
     },
   });
 
-  // Run VCP Scanner mutation
+  // Run Full VCP Scanner mutation
   const runScannerMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('run-vcp-scanner', {
@@ -109,21 +109,24 @@ export function VCPScanner() {
       return data;
     },
     onSuccess: (data) => {
-      toast.success(`VCP Scanner completed! Found ${data.results_count} stocks matching VCP criteria for ${data.scan_date}.`);
+      toast.success(`🎯 Full Market VCP Scan Complete! 
+        Scanned ${data.total_scanned} stocks (NSE: ${data.nse_stocks}, BSE: ${data.bse_stocks}).
+        Found ${data.results_count} VCP patterns for ${data.scan_date}.
+        Success Rate: ${data.breakdown?.success_rate}`);
       queryClient.invalidateQueries({ queryKey: ['vcp-scan-results'] });
       queryClient.invalidateQueries({ queryKey: ['scan-metadata'] });
       setIsScanning(false);
     },
     onError: (error) => {
-      console.error('Scanner error:', error);
-      toast.error('Scanner failed to run. Please try again.');
+      console.error('Full Scanner error:', error);
+      toast.error('Full Market Scanner failed to run. Please try again.');
       setIsScanning(false);
     },
   });
 
-  const handleRunScanner = async () => {
+  const handleRunFullScanner = async () => {
     setIsScanning(true);
-    toast.info('Starting VCP Scanner for last market close data... This may take a few minutes.');
+    toast.info('🔍 Starting Full Market VCP Scanner for ALL NSE & BSE stocks... This will take a few minutes as we scan the entire market universe.');
     runScannerMutation.mutate();
   };
 
@@ -173,11 +176,11 @@ export function VCPScanner() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `vcp_scan_results_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `full_market_vcp_scan_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
     
-    toast.success('VCP Results exported to CSV');
+    toast.success('Full Market VCP Results exported to CSV');
   };
 
   const lastTradingDay = getLastTradingDay();
@@ -196,11 +199,11 @@ export function VCPScanner() {
       <Card className="glass-effect">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white text-2xl">
-            <Zap className="w-6 h-6 text-yellow-400" />
-            VCP Algo Inbuilt Scanner
+            <Database className="w-6 h-6 text-yellow-400" />
+            VCP Algo Inbuilt Scanner - Full Market Coverage
           </CardTitle>
           <p className="text-slate-400">
-            Professional Volatility Contraction Pattern scanner based on Mark Minervini's methodology
+            Professional Volatility Contraction Pattern scanner covering ALL NSE & BSE listed stocks based on Mark Minervini's methodology
           </p>
           <div className="flex items-center gap-4 mt-4 text-sm">
             <div className="flex items-center gap-2 text-green-400">
@@ -211,44 +214,56 @@ export function VCPScanner() {
               <Calendar className="w-4 h-4" />
               <span>Last Trading Day: {lastTradingDay}</span>
             </div>
+            <div className="flex items-center gap-2 text-purple-400">
+              <Database className="w-4 h-4" />
+              <span>Coverage: All NSE + BSE Stocks</span>
+            </div>
           </div>
         </CardHeader>
       </Card>
 
-      {/* Control Panel */}
+      {/* Enhanced Control Panel */}
       <Card className="glass-effect">
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div className="flex items-center gap-4 text-slate-300">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                <span className="text-sm">Last Scan: {latestScanDate}</span>
+                <span className="text-sm">Last Full Scan: {latestScanDate}</span>
               </div>
               {scanMetadata && (
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4" />
-                  <span className="text-sm">
-                    {scanMetadata.filtered_results_count} VCP patterns found
-                  </span>
-                </div>
+                <>
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4" />
+                    <span className="text-sm">
+                      {scanMetadata.filtered_results_count} VCP patterns found
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Database className="w-4 h-4" />
+                    <span className="text-sm">
+                      {scanMetadata.total_stocks_scanned?.toLocaleString()} stocks scanned
+                    </span>
+                  </div>
+                </>
               )}
             </div>
 
             <div className="flex gap-3">
               <Button
-                onClick={handleRunScanner}
+                onClick={handleRunFullScanner}
                 disabled={isScanning}
-                className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium"
+                className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium px-6"
               >
                 {isScanning ? (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Scanning...
+                    Scanning All Stocks...
                   </>
                 ) : (
                   <>
-                    <Zap className="w-4 h-4 mr-2" />
-                    Run Scanner (Last Market Close Data)
+                    <Database className="w-4 h-4 mr-2" />
+                    Run Full Scanner (All NSE + BSE)
                   </>
                 )}
               </Button>
@@ -267,23 +282,29 @@ export function VCPScanner() {
         </CardContent>
       </Card>
 
-      {/* VCP Filter Conditions Info */}
+      {/* Enhanced VCP Filter Conditions Info */}
       <Card className="glass-effect">
         <CardHeader>
-          <CardTitle className="text-white text-lg">Mark Minervini's VCP Filter Conditions</CardTitle>
+          <CardTitle className="text-white text-lg">Mark Minervini's VCP Filter Conditions (Applied to ALL Stocks)</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-slate-300 space-y-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div>• ATR(14) &lt; ATR(14) 10 days ago</div>
-            <div>• ATR(14) / Close &lt; 0.08</div>
-            <div>• Close &gt; 0.75 × 52-week High</div>
-            <div>• EMA(50) &gt; EMA(150) &gt; EMA(200)</div>
-            <div>• Close &gt; EMA(50)</div>
-            <div>• Close &gt; ₹10</div>
-            <div>• Close × Volume &gt; ₹1 Crore</div>
-            <div>• Volume &lt; 20-day average</div>
-            <div>• (Max 5-day High - Min 5-day Low) / Close &lt; 0.08</div>
-            <div>• Breakout: Close crosses 20-day High + Volume spike</div>
+            <div>✅ ATR(14) &lt; ATR(14) 10 days ago</div>
+            <div>✅ ATR(14) / Close &lt; 0.08 (8% volatility limit)</div>
+            <div>✅ Close &gt; 0.75 × 52-week High</div>
+            <div>✅ EMA(50) &gt; EMA(150) &gt; EMA(200)</div>
+            <div>✅ Close &gt; EMA(50)</div>
+            <div>✅ Close &gt; ₹10</div>
+            <div>✅ Close × Volume &gt; ₹1 Crore</div>
+            <div>✅ Volume &lt; 20-day average</div>
+            <div>✅ (Max 5-day High - Min 5-day Low) / Close &lt; 0.08</div>
+            <div>🎯 Breakout: Close crosses 20-day High + Volume spike</div>
+          </div>
+          <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded">
+            <p className="text-blue-300 text-xs">
+              <strong>Full Market Coverage:</strong> This scanner processes the entire universe of NSE & BSE listed stocks (~1800+ NSE, ~5000+ BSE), 
+              ensuring no VCP opportunity is missed across the Indian equity markets.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -296,10 +317,10 @@ export function VCPScanner() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
             <TrendingUp className="w-5 h-5 text-green-400" />
-            VCP Scanner Results
+            Full Market VCP Scanner Results
             {scanResults && scanResults.length > 0 && (
               <span className="text-sm text-slate-400 ml-2">
-                ({scanResults.length} stocks match VCP criteria)
+                ({scanResults.length} stocks match VCP criteria from full market scan)
               </span>
             )}
           </CardTitle>

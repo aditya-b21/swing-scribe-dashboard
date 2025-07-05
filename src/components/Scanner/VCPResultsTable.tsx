@@ -125,7 +125,7 @@ export function VCPResultsTable({ results, isLoading }: VCPResultsTableProps) {
                     Vol Contraction
                   </Badge>
                   <Badge variant="outline" className="text-xs border-green-500/30 text-green-400">
-                    Price > ₹10
+                    Price &gt; ₹10
                   </Badge>
                 </div>
               </div>
