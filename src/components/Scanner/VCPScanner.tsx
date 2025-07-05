@@ -73,21 +73,21 @@ export function VCPScanner() {
         .from('vcp_scan_results')
         .select('*')
         .order('scan_date', { ascending: false })
-        .limit(1000); // Increased limit for full market results
+        .limit(2000); // Increased limit for complete market results
 
       if (error) throw error;
       return data as VCPScanResult[];
     },
   });
 
-  // Fetch scan metadata
+  // Fetch scan metadata with updated scan type
   const { data: scanMetadata } = useQuery({
     queryKey: ['scan-metadata'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('scan_metadata')
         .select('*')
-        .eq('scan_type', 'VCP_FULL_MARKET')
+        .eq('scan_type', 'VCP_COMPREHENSIVE_MARKET_SCAN')
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
@@ -108,33 +108,36 @@ export function VCPScanner() {
       return data;
     },
     onSuccess: (data) => {
-      const successMessage = `🚀 FULL MARKET VCP SCAN COMPLETE! 
+      const successMessage = `🚀 ULTIMATE VCP MARKET SCAN COMPLETE! 
       
-📊 SCANNED: ${data.total_scanned?.toLocaleString()} stocks from entire NSE + BSE universe
-📈 NSE: ${data.nse_stocks?.toLocaleString()} stocks | BSE: ${data.bse_stocks?.toLocaleString()} stocks  
-🎯 VCP PATTERNS FOUND: ${data.results_count} qualifying stocks
-⚡ SUCCESS RATE: ${data.breakdown?.success_rate}
-📅 DATA: ${data.scan_date} (Last Market Close)
-⏱️ DURATION: ${data.scan_duration}s
-🔥 API STATUS: ${data.api_status ? 'Real-time data integration active' : 'Mock data mode'}`;
+📊 PROCESSED: ${data.total_scanned?.toLocaleString()} stocks from COMPLETE NSE + BSE universe
+📈 NSE: ${data.scan_summary?.nse_stocks?.toLocaleString()} | BSE: ${data.scan_summary?.bse_stocks?.toLocaleString()} stocks  
+🎯 VCP PATTERNS FOUND: ${data.results_count} high-quality stocks
+⚡ SUCCESS RATE: ${data.success_rate}
+📡 REAL DATA: ${data.scan_summary?.real_data_percentage} from live APIs
+📅 SCAN DATE: ${data.scan_date}
+⏱️ DURATION: ${Math.floor(data.scan_duration_seconds/60)}m ${data.scan_duration_seconds%60}s
+🔥 PROCESSING RATE: ${data.processing_rate} stocks/minute
 
-      toast.success(successMessage, { duration: 8000 });
+Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
+
+      toast.success(successMessage, { duration: 10000 });
       queryClient.invalidateQueries({ queryKey: ['vcp-scan-results'] });
       queryClient.invalidateQueries({ queryKey: ['scan-metadata'] });
       setIsScanning(false);
     },
     onError: (error) => {
-      console.error('Full Market Scanner error:', error);
-      toast.error('🚨 Full Market Scanner encountered an error. Please check API configuration and try again.', { duration: 6000 });
+      console.error('Ultimate VCP Scanner error:', error);
+      toast.error('🚨 Ultimate VCP Scanner encountered an error. Please check API configuration and try again.', { duration: 6000 });
       setIsScanning(false);
     },
   });
 
   const handleRunFullScanner = async () => {
     setIsScanning(true);
-    toast.info('🔥 LAUNCHING FULL MARKET VCP SCANNER...', {
-      description: `Scanning ALL ${(1800 + 5000).toLocaleString()}+ NSE & BSE stocks with real-time data. This comprehensive scan will take several minutes to process the entire market universe.`,
-      duration: 5000
+    toast.info('🔥 LAUNCHING ULTIMATE VCP MARKET SCANNER...', {
+      description: `Scanning ALL ${(NSE_STOCKS.length + BSE_STOCKS.length).toLocaleString()}+ NSE & BSE stocks with enhanced VCP detection. This comprehensive scan will process the complete Indian equity market universe with Mark Minervini's algorithmic methodology.`,
+      duration: 6000
     });
     runScannerMutation.mutate();
   };
@@ -209,22 +212,22 @@ export function VCPScanner() {
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white text-2xl">
             <Globe className="w-6 h-6 text-green-400" />
-            Enhanced VCP Full Market Scanner
+            Ultimate VCP Market Scanner v6.0
             <span className="text-sm bg-green-500/20 text-green-400 px-3 py-1 rounded-full border border-green-500/30">
-              Complete Universe Coverage
+              Complete Universe + Enhanced Detection
             </span>
           </CardTitle>
           <p className="text-slate-400">
-            Professional-grade Volatility Contraction Pattern scanner with <strong>FULL market coverage</strong> across entire NSE & BSE universe using Mark Minervini's algorithmic methodology
+            Professional-grade Volatility Contraction Pattern scanner with <strong>COMPLETE market coverage</strong> across entire NSE & BSE universe using Mark Minervini's enhanced algorithmic methodology with 12 quality filters
           </p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 text-sm">
             <div className="flex items-center gap-2 text-green-400">
               <Database className="w-4 h-4" />
-              <span>NSE: 1,800+ stocks</span>
+              <span>NSE: {NSE_STOCKS.length.toLocaleString()}+ stocks</span>
             </div>
             <div className="flex items-center gap-2 text-blue-400">
               <Database className="w-4 h-4" />
-              <span>BSE: 5,000+ stocks</span>
+              <span>BSE: {BSE_STOCKS.length.toLocaleString()}+ stocks</span>
             </div>
             <div className="flex items-center gap-2 text-purple-400">
               <Clock className="w-4 h-4" />
@@ -232,7 +235,7 @@ export function VCPScanner() {
             </div>
             <div className="flex items-center gap-2 text-orange-400">
               <Settings className="w-4 h-4" />
-              <span>Real-time API Integration</span>
+              <span>Multi-API Integration</span>
             </div>
           </div>
         </CardHeader>
@@ -246,7 +249,7 @@ export function VCPScanner() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-slate-300">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-blue-400" />
-                  <span className="text-sm">Last Full Scan: <strong>{latestScanDate}</strong></span>
+                  <span className="text-sm">Last Complete Scan: <strong>{latestScanDate}</strong></span>
                 </div>
                 {scanMetadata && (
                   <>
@@ -259,7 +262,7 @@ export function VCPScanner() {
                     <div className="flex items-center gap-2">
                       <Globe className="w-4 h-4 text-purple-400" />
                       <span className="text-sm">
-                        Universe: <strong>{scanMetadata.total_stocks_scanned?.toLocaleString()}</strong> stocks
+                        Total Processed: <strong>{scanMetadata.total_stocks_scanned?.toLocaleString()}</strong> stocks
                       </span>
                     </div>
                   </>
@@ -268,8 +271,9 @@ export function VCPScanner() {
               
               <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                 <p className="text-blue-300 text-xs">
-                  <strong>FULL MARKET COVERAGE:</strong> This scanner processes the <em>complete universe</em> of NSE & BSE listed stocks, 
-                  ensuring zero VCP opportunities are missed across Indian equity markets. Real-time data integration with multiple API sources.
+                  <strong>ULTIMATE MARKET COVERAGE:</strong> This scanner processes the <em>complete universe</em> of NSE & BSE listed stocks 
+                  with enhanced Mark Minervini VCP detection algorithm featuring 12 quality filters including volatility contraction, 
+                  cup formation analysis, trend structure validation, and breakout signal detection.
                 </p>
               </div>
             </div>
@@ -283,12 +287,12 @@ export function VCPScanner() {
                 {isScanning ? (
                   <>
                     <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                    Scanning Full Market...
+                    Scanning Complete Market...
                   </>
                 ) : (
                   <>
                     <Globe className="w-5 h-5 mr-2" />
-                    Run Full Market Scanner
+                    Run Ultimate Market Scanner
                   </>
                 )}
               </Button>
@@ -307,41 +311,44 @@ export function VCPScanner() {
         </CardContent>
       </Card>
 
-      {/* Enhanced VCP Filter Conditions Info */}
+      {/* Enhanced VCP Algorithm Info */}
       <Card className="glass-effect">
         <CardHeader>
           <CardTitle className="text-white text-lg flex items-center gap-2">
             <Zap className="w-5 h-5 text-yellow-400" />
-            Mark Minervini's VCP Algorithm (Applied to ALL 6,800+ Stocks)
+            Enhanced Mark Minervini VCP Algorithm v6.0 (Applied to Complete Market)
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-slate-300 space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="p-3 bg-green-500/10 border border-green-500/20 rounded">
-              <strong className="text-green-400">✅ Technical Filters:</strong>
+              <strong className="text-green-400">✅ Technical Filters (6 criteria):</strong>
               <ul className="mt-2 space-y-1 text-xs">
-                <li>• ATR(14) &lt; ATR(14) 10 days ago</li>
-                <li>• ATR(14) / Close &lt; 0.08 (8% volatility limit)</li>
-                <li>• Close &gt; 0.75 × 52-week High</li>
-                <li>• EMA(50) &gt; EMA(150) &gt; EMA(200)</li>
-                <li>• Close &gt; EMA(50)</li>
+                <li>• Strong EMA trend: 10 &gt; 21 &gt; 50 &gt; 150 &gt; 200</li>
+                <li>• ATR volatility contraction (min 20%)</li>
+                <li>• Price within 25% of 52-week high</li>
+                <li>• Volume contraction pattern validation</li>
+                <li>• Price consolidation range (5-20%)</li>
+                <li>• Cup formation depth analysis (15-65%)</li>
               </ul>
             </div>
             <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded">
-              <strong className="text-blue-400">💰 Fundamental Filters:</strong>
+              <strong className="text-blue-400">💰 Fundamental Filters (6 criteria):</strong>
               <ul className="mt-2 space-y-1 text-xs">
-                <li>• Close &gt; ₹10 (Minimum price)</li>
-                <li>• Close × Volume &gt; ₹1 Crore (Liquidity)</li>
-                <li>• Volume &lt; 20-day average (Contraction)</li>
-                <li>• 5-day price range / Close &lt; 0.08</li>
-                <li>• 🎯 Breakout: Close crosses 20-day High + Volume spike</li>
+                <li>• Minimum price: ₹50 (quality threshold)</li>
+                <li>• Daily turnover: ₹50L+ (liquidity requirement)</li>
+                <li>• Stage 2 uptrend: 10% above 200 SMA</li>
+                <li>• Relative strength: 20% gain over 200 days</li>
+                <li>• Price action quality (max 15% range in 5 days)</li>
+                <li>• 🎯 Breakout: Volume spike with price breakout</li>
               </ul>
             </div>
           </div>
           <div className="mt-4 p-4 bg-purple-500/10 border border-purple-500/20 rounded">
             <p className="text-purple-300 text-sm">
-              <strong>🚀 ENHANCED FEATURES:</strong> Multi-API integration (Alpha Vantage, Twelve Data, EOD Historical), 
-              real-time market data synchronization, comprehensive universe coverage, and professional-grade accuracy for serious traders.
+              <strong>🚀 ENHANCED v6.0 FEATURES:</strong> Complete NSE & BSE coverage ({(NSE_STOCKS.length + BSE_STOCKS.length).toLocaleString()}+ stocks), 
+              Multi-API integration (Alpha Vantage, Yahoo Finance, Twelve Data, Zerodha), 12-point quality filter system, 
+              cup formation analysis, relative strength validation, and professional-grade accuracy for serious traders.
             </p>
           </div>
         </CardContent>
