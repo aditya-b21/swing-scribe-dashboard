@@ -5,13 +5,14 @@ import { SetupTracker } from '@/components/SetupTracker/SetupTracker';
 import { WeeklyDashboard } from '@/components/Dashboard/WeeklyDashboard';
 import { TradingCalculator } from '@/components/Calculator/TradingCalculator';
 import { CommunitySection } from '@/components/Community/CommunitySection';
-import { BookOpen, Target, BarChart3, Calculator, MessageSquare } from 'lucide-react';
+import { ScannerSection } from '@/components/Scanner/ScannerSection';
+import { BookOpen, Target, BarChart3, Calculator, MessageSquare, Search } from 'lucide-react';
 
 export function DashboardTabs() {
   return (
     <div className="container mx-auto p-4 space-y-6">
       <Tabs defaultValue="journal" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 bg-white/5 border border-white/10">
+        <TabsList className="grid w-full grid-cols-6 bg-white/5 border border-white/10">
           <TabsTrigger value="journal" className="flex items-center gap-2">
             <BookOpen className="w-4 h-4" />
             <span className="hidden sm:inline">Trade Journal</span>
@@ -19,6 +20,10 @@ export function DashboardTabs() {
           <TabsTrigger value="setups" className="flex items-center gap-2">
             <Target className="w-4 h-4" />
             <span className="hidden sm:inline">Setup Tracker</span>
+          </TabsTrigger>
+          <TabsTrigger value="scanner" className="flex items-center gap-2">
+            <Search className="w-4 h-4" />
+            <span className="hidden sm:inline">Scanner</span>
           </TabsTrigger>
           <TabsTrigger value="community" className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
@@ -40,6 +45,10 @@ export function DashboardTabs() {
 
         <TabsContent value="setups" className="mt-6">
           <SetupTracker />
+        </TabsContent>
+
+        <TabsContent value="scanner" className="mt-6">
+          <ScannerSection />
         </TabsContent>
 
         <TabsContent value="community" className="mt-6">
