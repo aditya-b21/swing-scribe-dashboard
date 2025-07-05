@@ -311,6 +311,78 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_metadata: {
+        Row: {
+          created_at: string
+          filtered_results_count: number | null
+          id: string
+          scan_date: string
+          scan_duration_seconds: number | null
+          scan_type: string
+          status: string | null
+          total_stocks_scanned: number | null
+        }
+        Insert: {
+          created_at?: string
+          filtered_results_count?: number | null
+          id?: string
+          scan_date: string
+          scan_duration_seconds?: number | null
+          scan_type?: string
+          status?: string | null
+          total_stocks_scanned?: number | null
+        }
+        Update: {
+          created_at?: string
+          filtered_results_count?: number | null
+          id?: string
+          scan_date?: string
+          scan_duration_seconds?: number | null
+          scan_type?: string
+          status?: string | null
+          total_stocks_scanned?: number | null
+        }
+        Relationships: []
+      }
+      stock_data: {
+        Row: {
+          close: number
+          created_at: string
+          date: string
+          exchange: string
+          high: number
+          id: string
+          low: number
+          open: number
+          symbol: string
+          volume: number
+        }
+        Insert: {
+          close: number
+          created_at?: string
+          date: string
+          exchange: string
+          high: number
+          id?: string
+          low: number
+          open: number
+          symbol: string
+          volume: number
+        }
+        Update: {
+          close?: number
+          created_at?: string
+          date?: string
+          exchange?: string
+          high?: number
+          id?: string
+          low?: number
+          open?: number
+          symbol?: string
+          volume?: number
+        }
+        Relationships: []
+      }
       trades: {
         Row: {
           buy_price: number
@@ -356,6 +428,60 @@ export type Database = {
           trade_date?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      vcp_scan_results: {
+        Row: {
+          atr_14: number | null
+          breakout_signal: boolean | null
+          close_price: number
+          created_at: string
+          ema_150: number | null
+          ema_200: number | null
+          ema_50: number | null
+          exchange: string
+          id: string
+          percent_from_52w_high: number | null
+          scan_date: string
+          symbol: string
+          volatility_contraction: number | null
+          volume: number
+          volume_avg_20: number | null
+        }
+        Insert: {
+          atr_14?: number | null
+          breakout_signal?: boolean | null
+          close_price: number
+          created_at?: string
+          ema_150?: number | null
+          ema_200?: number | null
+          ema_50?: number | null
+          exchange: string
+          id?: string
+          percent_from_52w_high?: number | null
+          scan_date: string
+          symbol: string
+          volatility_contraction?: number | null
+          volume: number
+          volume_avg_20?: number | null
+        }
+        Update: {
+          atr_14?: number | null
+          breakout_signal?: boolean | null
+          close_price?: number
+          created_at?: string
+          ema_150?: number | null
+          ema_200?: number | null
+          ema_50?: number | null
+          exchange?: string
+          id?: string
+          percent_from_52w_high?: number | null
+          scan_date?: string
+          symbol?: string
+          volatility_contraction?: number | null
+          volume?: number
+          volume_avg_20?: number | null
         }
         Relationships: []
       }

@@ -3,19 +3,12 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Search, TrendingUp, Zap, Rocket } from 'lucide-react';
+import { VCPScanner } from './VCPScanner';
 
 export function ScannerSection() {
   const [activeScanner, setActiveScanner] = useState<string | null>(null);
 
   const scanners = [
-    {
-      id: 'ipo',
-      title: 'IPO',
-      description: 'Scan for Initial Public Offerings and new listings',
-      icon: TrendingUp,
-      color: 'from-blue-500 to-blue-600',
-      hoverColor: 'hover:from-blue-600 hover:to-blue-700'
-    },
     {
       id: 'vcp',
       title: 'VCP',
@@ -23,6 +16,14 @@ export function ScannerSection() {
       icon: Search,
       color: 'from-green-500 to-green-600',
       hoverColor: 'hover:from-green-600 hover:to-green-700'
+    },
+    {
+      id: 'ipo',
+      title: 'IPO',
+      description: 'Scan for Initial Public Offerings and new listings',
+      icon: TrendingUp,
+      color: 'from-blue-500 to-blue-600',
+      hoverColor: 'hover:from-blue-600 hover:to-blue-700'
     },
     {
       id: 'rocket',
@@ -33,6 +34,24 @@ export function ScannerSection() {
       hoverColor: 'hover:from-orange-600 hover:to-orange-700'
     }
   ];
+
+  if (activeScanner === 'vcp') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4 mb-6">
+          <Button
+            onClick={() => setActiveScanner(null)}
+            variant="outline"
+            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+          >
+            ← Back to Scanners
+          </Button>
+          <h2 className="text-xl font-bold text-white">VCP Scanner</h2>
+        </div>
+        <VCPScanner />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -54,10 +73,8 @@ export function ScannerSection() {
           return (
             <Card 
               key={scanner.id}
-              className={`glass-effect card-hover cursor-pointer transition-all duration-300 ${
-                activeScanner === scanner.id ? 'ring-2 ring-blue-400' : ''
-              }`}
-              onClick={() => setActiveScanner(activeScanner === scanner.id ? null : scanner.id)}
+              className="glass-effect card-hover cursor-pointer transition-all duration-300"
+              onClick={() => setActiveScanner(scanner.id)}
             >
               <CardContent className="p-6">
                 <div className="text-center space-y-4">
@@ -90,7 +107,7 @@ export function ScannerSection() {
         })}
       </div>
 
-      {activeScanner && (
+      {activeScanner && activeScanner !== 'vcp' && (
         <Card className="glass-effect">
           <CardHeader>
             <CardTitle className="text-white">
