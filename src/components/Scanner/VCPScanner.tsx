@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Zap, Download, RefreshCw, Calendar, TrendingUp, BarChart3 } from 'lucide-react';
+import { Zap, Download, RefreshCw, Calendar, TrendingUp, BarChart3, Clock } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { VCPResultsTable } from './VCPResultsTable';
@@ -34,6 +34,32 @@ interface ScanMetadata {
   scan_duration_seconds: number | null;
   status: string | null;
   created_at: string;
+}
+
+// Get last trading day for display
+function getLastTradingDay(): string {
+  const today = new Date();
+  let lastTradingDay = new Date(today);
+  
+  if (today.getDay() === 6) { // Saturday
+    lastTradingDay.setDate(today.getDate() - 1);
+  } else if (today.getDay() === 0) { // Sunday
+    lastTradingDay.setDate(today.getDate() - 2);
+  } else if (today.getHours() < 16) { // Before 4 PM
+    lastTradingDay.setDate(today.getDate() - 1);
+    if (lastTradingDay.getDay() === 0) {
+      lastTradingDay.setDate(lastTradingDay.getDate() - 2);
+    } else if (lastTradingDay.getDay() === 6) {
+      lastTradingDay.setDate(lastTradingDay.getDate() - 1);
+    }
+  }
+  
+  return lastTradingDay.toLocaleDateString('en-IN', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
 }
 
 export function VCPScanner() {
@@ -76,14 +102,14 @@ export function VCPScanner() {
   const runScannerMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('run-vcp-scanner', {
-        body: { scan_date: new Date().toISOString().split('T')[0] }
+        body: {}
       });
       
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      toast.success('VCP Scanner completed successfully!');
+    onSuccess: (data) => {
+      toast.success(`VCP Scanner completed! Found ${data.results_count} stocks matching VCP criteria for ${data.scan_date}.`);
       queryClient.invalidateQueries({ queryKey: ['vcp-scan-results'] });
       queryClient.invalidateQueries({ queryKey: ['scan-metadata'] });
       setIsScanning(false);
@@ -97,7 +123,7 @@ export function VCPScanner() {
 
   const handleRunScanner = async () => {
     setIsScanning(true);
-    toast.info('Starting VCP Scanner... This may take a few minutes.');
+    toast.info('Starting VCP Scanner for last market close data... This may take a few minutes.');
     runScannerMutation.mutate();
   };
 
@@ -110,7 +136,7 @@ export function VCPScanner() {
     const csvHeaders = [
       'Symbol',
       'Exchange', 
-      'Close Price',
+      'Close Price (₹)',
       'Volume',
       '% from 52W High',
       'ATR(14)',
@@ -151,11 +177,17 @@ export function VCPScanner() {
     a.click();
     window.URL.revokeObjectURL(url);
     
-    toast.success('Results exported to CSV');
+    toast.success('VCP Results exported to CSV');
   };
 
+  const lastTradingDay = getLastTradingDay();
   const latestScanDate = scanMetadata?.scan_date 
-    ? new Date(scanMetadata.scan_date).toLocaleDateString('en-IN')
+    ? new Date(scanMetadata.scan_date).toLocaleDateString('en-IN', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
     : 'Never';
 
   return (
@@ -170,6 +202,16 @@ export function VCPScanner() {
           <p className="text-slate-400">
             Professional Volatility Contraction Pattern scanner based on Mark Minervini's methodology
           </p>
+          <div className="flex items-center gap-4 mt-4 text-sm">
+            <div className="flex items-center gap-2 text-green-400">
+              <Clock className="w-4 h-4" />
+              <span>Market Close: 3:30 PM IST</span>
+            </div>
+            <div className="flex items-center gap-2 text-blue-400">
+              <Calendar className="w-4 h-4" />
+              <span>Last Trading Day: {lastTradingDay}</span>
+            </div>
+          </div>
         </CardHeader>
       </Card>
 
@@ -186,7 +228,7 @@ export function VCPScanner() {
                 <div className="flex items-center gap-2">
                   <BarChart3 className="w-4 h-4" />
                   <span className="text-sm">
-                    {scanMetadata.filtered_results_count} results found
+                    {scanMetadata.filtered_results_count} VCP patterns found
                   </span>
                 </div>
               )}
@@ -206,7 +248,7 @@ export function VCPScanner() {
                 ) : (
                   <>
                     <Zap className="w-4 h-4 mr-2" />
-                    Run VCP Scanner
+                    Run Scanner (Last Market Close Data)
                   </>
                 )}
               </Button>
@@ -225,6 +267,27 @@ export function VCPScanner() {
         </CardContent>
       </Card>
 
+      {/* VCP Filter Conditions Info */}
+      <Card className="glass-effect">
+        <CardHeader>
+          <CardTitle className="text-white text-lg">Mark Minervini's VCP Filter Conditions</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-slate-300 space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div>• ATR(14) &lt; ATR(14) 10 days ago</div>
+            <div>• ATR(14) / Close &lt; 0.08</div>
+            <div>• Close &gt; 0.75 × 52-week High</div>
+            <div>• EMA(50) &gt; EMA(150) &gt; EMA(200)</div>
+            <div>• Close &gt; EMA(50)</div>
+            <div>• Close &gt; ₹10</div>
+            <div>• Close × Volume &gt; ₹1 Crore</div>
+            <div>• Volume &lt; 20-day average</div>
+            <div>• (Max 5-day High - Min 5-day Low) / Close &lt; 0.08</div>
+            <div>• Breakout: Close crosses 20-day High + Volume spike</div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Scan Statistics */}
       <VCPScanStats metadata={scanMetadata} />
 
@@ -234,6 +297,11 @@ export function VCPScanner() {
           <CardTitle className="flex items-center gap-2 text-white">
             <TrendingUp className="w-5 h-5 text-green-400" />
             VCP Scanner Results
+            {scanResults && scanResults.length > 0 && (
+              <span className="text-sm text-slate-400 ml-2">
+                ({scanResults.length} stocks match VCP criteria)
+              </span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>

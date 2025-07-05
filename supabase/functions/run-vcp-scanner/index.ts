@@ -35,6 +35,29 @@ interface VCPResult {
   scan_date: string;
 }
 
+// Get last trading day (skip weekends)
+function getLastTradingDay(): string {
+  const today = new Date();
+  let lastTradingDay = new Date(today);
+  
+  // If today is Saturday (6) or Sunday (0), go back to Friday
+  if (today.getDay() === 6) { // Saturday
+    lastTradingDay.setDate(today.getDate() - 1);
+  } else if (today.getDay() === 0) { // Sunday
+    lastTradingDay.setDate(today.getDate() - 2);
+  } else if (today.getHours() < 16) { // Before 4 PM, use previous day
+    lastTradingDay.setDate(today.getDate() - 1);
+    // Check if previous day is weekend
+    if (lastTradingDay.getDay() === 0) { // Sunday
+      lastTradingDay.setDate(lastTradingDay.getDate() - 2);
+    } else if (lastTradingDay.getDay() === 6) { // Saturday
+      lastTradingDay.setDate(lastTradingDay.getDate() - 1);
+    }
+  }
+  
+  return lastTradingDay.toISOString().split('T')[0];
+}
+
 // Calculate Simple Moving Average
 function calculateSMA(values: number[], period: number): number | null {
   if (values.length < period) return null;
@@ -76,7 +99,7 @@ function calculateATR(data: StockData[], period: number): number | null {
   return calculateSMA(trueRanges, period);
 }
 
-// VCP Filtering Algorithm
+// VCP Filtering Algorithm (Mark Minervini's Conditions)
 function applyVCPFilters(stockHistory: StockData[]): VCPResult | null {
   if (stockHistory.length < 252) return null; // Need at least 1 year of data
   
@@ -86,43 +109,39 @@ function applyVCPFilters(stockHistory: StockData[]): VCPResult | null {
   const highs = stockHistory.map(d => d.high);
   const lows = stockHistory.map(d => d.low);
   
-  // 1. Daily ATR(14) < 10 days ago Daily ATR(14)
+  // 1. ATR(14) < ATR(14) 10 days ago
   const currentATR = calculateATR(stockHistory.slice(-15), 14);
   const atr10DaysAgo = calculateATR(stockHistory.slice(-25, -10), 14);
   
   if (!currentATR || !atr10DaysAgo || currentATR >= atr10DaysAgo) return null;
   
-  // 2. Daily ATR(14) / Daily Close < 0.08
+  // 2. ATR(14) / Close < 0.08
   if (currentATR / latest.close >= 0.08) return null;
   
-  // 3. Daily Close > (Weekly Max(52, Weekly Close) * 0.75)
+  // 3. Close > 0.75 × 52-week High
   const max52WeekClose = Math.max(...closes.slice(-252));
   if (latest.close <= max52WeekClose * 0.75) return null;
   
-  // 4. EMA(Close, 50) > EMA(Close, 150)
+  // 4. EMA(50) > EMA(150) > EMA(200) and Close > EMA(50)
   const ema50 = calculateEMA(closes, 50);
   const ema150 = calculateEMA(closes, 150);
   const ema200 = calculateEMA(closes, 200);
   
-  if (!ema50 || !ema150 || !ema200 || ema50 <= ema150) return null;
-  
-  // 5. EMA(Close, 150) > EMA(Close, 200)
-  if (ema150 <= ema200) return null;
-  
-  // 6. Close > EMA(Close, 50)
+  if (!ema50 || !ema150 || !ema200) return null;
+  if (ema50 <= ema150 || ema150 <= ema200) return null;
   if (latest.close <= ema50) return null;
   
-  // 7. Close > 10
+  // 5. Close > ₹10
   if (latest.close <= 10) return null;
   
-  // 8. Close * Volume > 100000000 (1 Cr)
-  if (latest.close * latest.volume <= 100000000) return null;
+  // 6. Close × Volume > ₹1 Crore (10000000)
+  if (latest.close * latest.volume <= 10000000) return null;
   
-  // 9. Volume < SMA(Volume, 20)
+  // 7. Volume < 20-day average volume
   const volumeAvg20 = calculateSMA(volumes, 20);
   if (!volumeAvg20 || latest.volume >= volumeAvg20) return null;
   
-  // 10. (Max(5 days High) - Min(5 days Low)) / Close < 0.08
+  // 8. (Max of last 5 days' High - Min of last 5 days' Low) / Close < 0.08
   const recent5Highs = highs.slice(-5);
   const recent5Lows = lows.slice(-5);
   const maxRecent5High = Math.max(...recent5Highs);
@@ -131,12 +150,9 @@ function applyVCPFilters(stockHistory: StockData[]): VCPResult | null {
   
   if (volatilityContraction >= 0.08) return null;
   
-  // 11. Close crosses above Max(20, High) - Breakout Signal
+  // 9. (Optional) Breakout: Close crosses above 20-day High AND Volume > 1.5 × 20-day average
   const max20High = Math.max(...highs.slice(-21, -1)); // Previous 20 days
-  const breakoutSignal = latest.close > max20High;
-  
-  // 12. Volume > 1.5 * SMA(Volume, 20) - Enhanced breakout confirmation
-  const enhancedBreakout = breakoutSignal && latest.volume > 1.5 * volumeAvg20;
+  const breakoutSignal = latest.close > max20High && latest.volume > 1.5 * volumeAvg20;
   
   const percentFrom52WHigh = ((latest.close - max52WeekClose) / max52WeekClose) * 100;
   
@@ -151,7 +167,7 @@ function applyVCPFilters(stockHistory: StockData[]): VCPResult | null {
     ema_150: ema150,
     ema_200: ema200,
     volume_avg_20: Math.round(volumeAvg20),
-    breakout_signal: enhancedBreakout,
+    breakout_signal: breakoutSignal,
     volatility_contraction: volatilityContraction,
     scan_date: latest.date
   };
@@ -169,18 +185,23 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { scan_date } = await req.json();
     const scanStartTime = Date.now();
+    const scanDate = getLastTradingDay();
     
-    console.log(`Starting VCP Scanner for date: ${scan_date}`);
+    console.log(`Starting VCP Scanner for last trading day: ${scanDate}`);
 
-    // For demo purposes, we'll create some mock data
-    // In production, you would fetch real data from NSE/BSE APIs
+    // For demo purposes, we'll create realistic mock data
+    // In production, you would integrate with NSE/BSE APIs like:
+    // - NSE API, BSE API, or third-party providers like Alpha Vantage, Yahoo Finance
     const mockStockSymbols = [
       'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR',
       'ICICIBANK', 'KOTAKBANK', 'BHARTIARTL', 'LT', 'ASIANPAINT',
       'MARUTI', 'NESTLEIND', 'AXISBANK', 'ULTRACEMCO', 'TITAN',
-      'WIPRO', 'TECHM', 'HCLTECH', 'POWERGRID', 'SUNPHARMA'
+      'WIPRO', 'TECHM', 'HCLTECH', 'POWERGRID', 'SUNPHARMA',
+      'BAJFINANCE', 'SBIN', 'HDFCLIFE', 'ADANIPORTS', 'COALINDIA',
+      'DRREDDY', 'BAJAJFINSV', 'NTPC', 'ONGC', 'ITC',
+      'INDUSINDBK', 'CIPLA', 'GRASIM', 'JSWSTEEL', 'TATASTEEL',
+      'M&M', 'BRITANNIA', 'APOLLOHOSP', 'DIVISLAB', 'EICHERMOT'
     ];
 
     const allResults: VCPResult[] = [];
@@ -190,27 +211,35 @@ serve(async (req) => {
     for (const symbol of mockStockSymbols) {
       totalScanned++;
       
-      // Generate mock historical data (252 days)
+      // Generate realistic historical data (252 trading days)
       const mockHistory: StockData[] = [];
-      let basePrice = Math.random() * 2000 + 100; // Random price between 100-2100
+      let basePrice = Math.random() * 3000 + 200; // Random price between 200-3200
       
       for (let i = 0; i < 252; i++) {
         const date = new Date();
         date.setDate(date.getDate() - (252 - i));
         
-        const volatility = Math.random() * 0.05; // 5% volatility
-        const change = (Math.random() - 0.5) * volatility;
-        basePrice = basePrice * (1 + change);
+        // Skip weekends
+        if (date.getDay() === 0 || date.getDay() === 6) continue;
         
-        const open = basePrice;
-        const high = open * (1 + Math.random() * 0.03);
-        const low = open * (1 - Math.random() * 0.03);
-        const close = low + Math.random() * (high - low);
-        const volume = Math.floor(Math.random() * 10000000) + 100000;
+        // Simulate more realistic price movements
+        const volatility = Math.random() * 0.04 + 0.01; // 1-5% volatility
+        const trend = Math.random() - 0.48; // Slight upward bias
+        const change = trend * volatility;
+        basePrice = Math.max(basePrice * (1 + change), 10); // Minimum ₹10
+        
+        const open = basePrice * (0.995 + Math.random() * 0.01);
+        const close = basePrice * (0.995 + Math.random() * 0.01);
+        const high = Math.max(open, close) * (1 + Math.random() * 0.025);
+        const low = Math.min(open, close) * (1 - Math.random() * 0.025);
+        
+        // Realistic volume based on price
+        const avgVolume = Math.floor((50000000 / basePrice) * (0.5 + Math.random()));
+        const volume = Math.floor(avgVolume * (0.3 + Math.random() * 1.4));
         
         mockHistory.push({
           symbol,
-          exchange: Math.random() > 0.5 ? 'NSE' : 'BSE',
+          exchange: Math.random() > 0.3 ? 'NSE' : 'BSE',
           date: date.toISOString().split('T')[0],
           open,
           high,
@@ -220,7 +249,7 @@ serve(async (req) => {
         });
       }
       
-      // Apply VCP filters
+      // Apply strict VCP filters
       const vcpResult = applyVCPFilters(mockHistory);
       if (vcpResult) {
         allResults.push(vcpResult);
@@ -229,13 +258,14 @@ serve(async (req) => {
 
     const scanDuration = Math.floor((Date.now() - scanStartTime) / 1000);
     
-    console.log(`Scan completed: ${allResults.length} results from ${totalScanned} stocks in ${scanDuration}s`);
+    console.log(`VCP Scan completed: ${allResults.length} results from ${totalScanned} stocks in ${scanDuration}s`);
+    console.log(`Scan Date: ${scanDate} (Last Trading Day)`);
 
     // Save scan metadata
     const { error: metadataError } = await supabase
       .from('scan_metadata')
       .insert({
-        scan_date,
+        scan_date: scanDate,
         scan_type: 'VCP',
         total_stocks_scanned: totalScanned,
         filtered_results_count: allResults.length,
@@ -251,16 +281,16 @@ serve(async (req) => {
     await supabase
       .from('vcp_scan_results')
       .delete()
-      .eq('scan_date', scan_date);
+      .eq('scan_date', scanDate);
 
-    // Save new results
+    // Save new VCP results
     if (allResults.length > 0) {
       const { error: resultsError } = await supabase
         .from('vcp_scan_results')
         .insert(allResults);
 
       if (resultsError) {
-        console.error('Error saving results:', resultsError);
+        console.error('Error saving VCP results:', resultsError);
         throw resultsError;
       }
     }
@@ -268,9 +298,11 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        scan_date: scanDate,
         results_count: allResults.length,
         total_scanned: totalScanned,
-        scan_duration: scanDuration
+        scan_duration: scanDuration,
+        message: `VCP Scanner completed for ${scanDate} (Last Trading Day)`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -281,7 +313,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('VCP Scanner error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'VCP Scanner failed. Check logs for details.'
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
