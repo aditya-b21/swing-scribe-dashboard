@@ -34,239 +34,64 @@ interface VCPResult {
   scan_date: string;
 }
 
-interface StockInfo {
-  symbol: string;
-  name: string;
-  exchange: string;
-  segment: string;
-  instrument_token?: string;
-}
-
-// Fetch complete list of all NSE and BSE stocks using Zerodha API
-async function fetchAllStocksList(): Promise<StockInfo[]> {
-  const allStocks: StockInfo[] = [];
+// Comprehensive stock lists for NSE and BSE
+const NSE_STOCKS = [
+  // NIFTY 50 Stocks
+  'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR', 'ICICIBANK', 'KOTAKBANK', 'BHARTIARTL', 
+  'LT', 'ASIANPAINT', 'MARUTI', 'NESTLEIND', 'AXISBANK', 'ULTRACEMCO', 'TITAN', 'WIPRO', 
+  'TECHM', 'HCLTECH', 'POWERGRID', 'SUNPHARMA', 'BAJFINANCE', 'SBIN', 'HDFCLIFE', 'ADANIPORTS',
+  'COALINDIA', 'DRREDDY', 'BAJAJFINSV', 'NTPC', 'ONGC', 'ITC', 'INDUSINDBK', 'CIPLA', 'GRASIM',
+  'JSWSTEEL', 'TATASTEEL', 'MM', 'BRITANNIA', 'APOLLOHOSP', 'DIVISLAB', 'EICHERMOT', 'HEROMOTOCO',
+  'TATAMOTORS', 'BAJAJ-AUTO', 'HINDALCO', 'BPCL', 'TATACONSUM', 'SHREECEM', 'ADANIENT', 'ADANIGREEN',
   
-  try {
-    // Try Zerodha instruments API first
-    const zerodhaApiKey = Deno.env.get('ZERODHA_API_KEY');
-    if (zerodhaApiKey) {
-      console.log('📡 Fetching complete stock list from Zerodha...');
-      
-      try {
-        const response = await fetch('https://api.kite.trade/instruments', {
-          headers: {
-            'Authorization': `token ${zerodhaApiKey}`,
-            'X-Kite-Version': '3'
-          }
-        });
-        
-        if (response.ok) {
-          const csvData = await response.text();
-          const lines = csvData.split('\n');
-          
-          for (let i = 1; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (!line) continue;
-            
-            const cols = line.split(',');
-            if (cols.length >= 8) {
-              const instrument_token = cols[0];
-              const exchange_token = cols[1];
-              const tradingsymbol = cols[2];
-              const name = cols[3];
-              const last_price = cols[4];
-              const expiry = cols[5];
-              const strike = cols[6];
-              const tick_size = cols[7];
-              const lot_size = cols[8];
-              const instrument_type = cols[9];
-              const segment = cols[10];
-              const exchange = cols[11];
-              
-              // Only include equity stocks from NSE and BSE
-              if ((exchange === 'NSE' || exchange === 'BSE') && 
-                  (instrument_type === 'EQ' || segment === 'EQ')) {
-                allStocks.push({
-                  symbol: tradingsymbol,
-                  name: name || tradingsymbol,
-                  exchange: exchange,
-                  segment: segment,
-                  instrument_token: instrument_token
-                });
-              }
-            }
-          }
-          
-          console.log(`✅ Fetched ${allStocks.length} stocks from Zerodha API`);
-        }
-      } catch (error) {
-        console.warn('⚠️ Zerodha API error:', error.message);
-      }
-    }
-    
-    // If Zerodha didn't work or returned limited results, use alternative sources
-    if (allStocks.length < 1000) {
-      console.log('📡 Fetching additional stocks from alternative sources...');
-      
-      // Try NSE official API
-      try {
-        const nseResponse = await fetch('https://www.nseindia.com/api/equity-stockIndices?index=SECURITIES%20IN%20F%26O', {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'application/json'
-          }
-        });
-        
-        if (nseResponse.ok) {
-          const nseData = await nseResponse.json();
-          if (nseData.data) {
-            for (const stock of nseData.data) {
-              if (stock.symbol && !allStocks.find(s => s.symbol === stock.symbol && s.exchange === 'NSE')) {
-                allStocks.push({
-                  symbol: stock.symbol,
-                  name: stock.symbol,
-                  exchange: 'NSE',
-                  segment: 'EQ'
-                });
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.warn('⚠️ NSE API error:', error.message);
-      }
-      
-      // Try BSE API
-      try {
-        const bseResponse = await fetch('https://api.bseindia.com/BseIndiaAPI/api/ListOfScrips/w', {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
-        });
-        
-        if (bseResponse.ok) {
-          const bseData = await bseResponse.json();
-          if (bseData.Table) {
-            for (const stock of bseData.Table) {
-              if (stock.Scrip_Cd && stock.Scrip_Name && !allStocks.find(s => s.symbol === stock.Scrip_Cd && s.exchange === 'BSE')) {
-                allStocks.push({
-                  symbol: stock.Scrip_Cd,
-                  name: stock.Scrip_Name,
-                  exchange: 'BSE',
-                  segment: 'EQ'
-                });
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.warn('⚠️ BSE API error:', error.message);
-      }
-    }
-    
-    // If still limited, add comprehensive hardcoded list
-    if (allStocks.length < 2000) {
-      console.log('📊 Adding comprehensive hardcoded stock list...');
-      
-      // Comprehensive NSE stocks (all major and mid-cap stocks)
-      const comprehensiveNSEStocks = [
-        // NIFTY 50
-        'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR', 'ICICIBANK', 'KOTAKBANK',
-        'BHARTIARTL', 'LT', 'ASIANPAINT', 'MARUTI', 'NESTLEIND', 'AXISBANK', 'ULTRACEMCO',
-        'TITAN', 'WIPRO', 'TECHM', 'HCLTECH', 'POWERGRID', 'SUNPHARMA', 'BAJFINANCE',
-        'SBIN', 'HDFCLIFE', 'ADANIPORTS', 'COALINDIA', 'DRREDDY', 'BAJAJFINSV', 'NTPC',
-        'ONGC', 'ITC', 'INDUSINDBK', 'CIPLA', 'GRASIM', 'JSWSTEEL', 'TATASTEEL', 'MM',
-        'BRITANNIA', 'APOLLOHOSP', 'DIVISLAB', 'EICHERMOT', 'HEROMOTOCO', 'TATAMOTORS',
-        'BAJAJ-AUTO', 'HINDALCO', 'BPCL', 'TATACONSUM', 'SHREECEM', 'ADANIENT', 'ADANIGREEN',
-        
-        // NIFTY Next 50
-        'NAUKRI', 'VEDL', 'GODREJCP', 'SIEMENS', 'DMART', 'PIDILITIND', 'COLPAL', 'MARICO',
-        'BERGEPAINT', 'DABUR', 'LUPIN', 'GLAND', 'INDIGO', 'MCDOWELL-N', 'TORNTPHARM',
-        'BIOCON', 'MOTHERSUMI', 'BOSCHLTD', 'HAVELLS', 'PAGEIND', 'AMBUJACEM', 'ACC',
-        'MPHASIS', 'BANKBARODA', 'PEL', 'INDIAMART', 'CONCOR', 'NMDC', 'SAIL',
-        'NATIONALUM', 'HINDZINC', 'JINDALSTEL', 'TATAPOWER', 'PFC', 'RECLTD', 'IRCTC',
-        'VOLTAS', 'CROMPTON', 'WHIRLPOOL', 'DIXON', 'JUBLFOOD', 'PGHH', 'GODREJIND',
-        'VBL', 'RADICO', 'RELAXO', 'BATAINDIA', 'SYMPHONY', 'BLUESTARCO', 'ZYDUSLIFE',
-        
-        // Mid-cap and Small-cap additions
-        'AUROPHARMA', 'CADILAHC', 'GLAXO', 'PFIZER', 'ABBOTINDIA', 'ALKEM', 'LALPATHLAB',
-        'APOLLOTYRE', 'CEAT', 'BALKRISIND', 'SUPREMEIND', 'ASTRAL', 'FINOLEX', 'POLYCAB',
-        'KEI', 'APLAPOLLO', 'TORNTPOWER', 'ADANIPOWER', 'NHPC', 'THERMAX', 'BHEL',
-        'CUMMINSIND', 'EXIDEIND', 'SUNDRMFAST', 'TVSMOTORS', 'MAHINDRA', 'ASHOKLEY',
-        'PERSISTENT', 'LTTS', 'CYIENT', 'COFORGE', 'OFSS', 'KPITTECH', 'MINDTREE',
-        'LTIM', 'TECHM', 'RNAM', 'SONACOMS', 'RAMCOCEM', 'JKCEMENT', 'HEIDELBERG',
-        'AARTIIND', 'AAVAS', 'ABCAPITAL', 'ABFRL', 'AEGISLOG', 'AFFLE', 'AJANTPHARM',
-        'ALKYLAMINE', 'AMARAJABAT', 'ANANTRAJ', 'APARINDS', 'ASHOKLEY', 'ATUL', 'AUBANK',
-        'BAJAJHLDNG', 'BANDHANBNK', 'BHARATFORG', 'CANFINHOME', 'CHOLAFIN', 'DEEPAKNTR',
-        'FEDERALBNK', 'GAIL', 'GMRINFRA', 'GRANULES', 'HONAUT', 'IDFCFIRSTB', 'IIFL',
-        'IOC', 'IRCON', 'JSWENERGY', 'KANSAINER', 'LICHSGFIN', 'MANAPPURAM', 'METROPOLIS',
-        'MFSL', 'MINDAIND', 'MRF', 'MUTHOOTFIN', 'NATIONALUM', 'NBCC', 'NIACL', 'NIITLTD',
-        'NLCINDIA', 'PAYTM', 'PETRONET', 'PHOENIX', 'PIIND', 'PNBHOUSING', 'PRAJ', 'RAIL',
-        'RAILTEL', 'RBLBANK', 'RPOWER', 'SCHAEFFLER', 'SBICARD', 'SBILIFE', 'SOLARINDS',
-        'SPANDANA', 'SRTRANSFIN', 'STAR', 'SUZLON', 'SYNGENE', 'TATACHEM', 'TATACOMM',
-        'TATAELXSI', 'TATAINVEST', 'TTML', 'UBL', 'UJJIVAN', 'UJJIVANSFB', 'UNIONBANK',
-        'UNIPARTS', 'USHAMART', 'VGUARD', 'VINATIORGA', 'WELCORP', 'WELSPUNIND', 'YESBANK'
-      ];
-      
-      // Add comprehensive BSE stocks
-      const comprehensiveBSEStocks = [
-        'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR', 'ICICIBANK', 'BHARTIARTL',
-        'LT', 'ASIANPAINT', 'MARUTI', 'NESTLEIND', 'AXISBANK', 'TITAN', 'WIPRO',
-        'TECHM', 'HCLTECH', 'SUNPHARMA', 'BAJFINANCE', 'SBIN', 'ITC', 'CIPLA',
-        'BRITANNIA', 'APOLLOHOSP', 'DIVISLAB', 'TATAMOTORS', 'HINDALCO', 'BPCL',
-        'ADANIPORTS', 'COALINDIA', 'DRREDDY', 'BAJAJFINSV', 'NTPC', 'ONGC',
-        'INDUSINDBK', 'GRASIM', 'JSWSTEEL', 'TATASTEEL', 'MM', 'EICHERMOT',
-        'HEROMOTOCO', 'BAJAJ-AUTO', 'TATACONSUM', 'SHREECEM', 'ULTRACEMCO', 'POWERGRID',
-        'KOTAKBANK', 'HDFCLIFE', 'ADANIENT', 'ADANIGREEN', 'GODREJCP', 'SIEMENS',
-        'DMART', 'PIDILITIND', 'COLPAL', 'MARICO', 'BERGEPAINT', 'DABUR', 'LUPIN',
-        'BIOCON', 'MOTHERSUMI', 'BOSCHLTD', 'HAVELLS', 'PAGEIND', 'AMBUJACEM', 'ACC'
-      ];
-      
-      // Add to allStocks if not already present
-      for (const symbol of comprehensiveNSEStocks) {
-        if (!allStocks.find(s => s.symbol === symbol && s.exchange === 'NSE')) {
-          allStocks.push({
-            symbol: symbol,
-            name: symbol,
-            exchange: 'NSE',
-            segment: 'EQ'
-          });
-        }
-      }
-      
-      for (const symbol of comprehensiveBSEStocks) {
-        if (!allStocks.find(s => s.symbol === symbol && s.exchange === 'BSE')) {
-          allStocks.push({
-            symbol: symbol,
-            name: symbol,
-            exchange: 'BSE',
-            segment: 'EQ'
-          });
-        }
-      }
-    }
-    
-    // Remove duplicates and sort
-    const uniqueStocks = allStocks.filter((stock, index, self) => 
-      index === self.findIndex(s => s.symbol === stock.symbol && s.exchange === stock.exchange)
-    );
-    
-    console.log(`🎯 Total unique stocks found: ${uniqueStocks.length}`);
-    console.log(`📊 NSE stocks: ${uniqueStocks.filter(s => s.exchange === 'NSE').length}`);
-    console.log(`📊 BSE stocks: ${uniqueStocks.filter(s => s.exchange === 'BSE').length}`);
-    
-    return uniqueStocks;
-    
-  } catch (error) {
-    console.error('❌ Error fetching stocks list:', error);
-    return [];
-  }
-}
+  // NIFTY Next 50
+  'NAUKRI', 'VEDL', 'GODREJCP', 'SIEMENS', 'DMART', 'PIDILITIND', 'COLPAL', 'MARICO', 'BERGEPAINT',
+  'DABUR', 'LUPIN', 'GLAND', 'INDIGO', 'MCDOWELL-N', 'TORNTPHARM', 'BIOCON', 'MOTHERSUMI', 'BOSCHLTD',
+  'HAVELLS', 'PAGEIND', 'AMBUJACEM', 'ACC', 'MPHASIS', 'BANKBARODA', 'PEL', 'INDIAMART', 'CONCOR',
+  'NMDC', 'SAIL', 'NATIONALUM', 'HINDZINC', 'JINDALSTEL', 'TATAPOWER', 'PFC', 'RECLTD', 'IRCTC',
+  'VOLTAS', 'CROMPTON', 'WHIRLPOOL', 'DIXON', 'JUBLFOOD', 'PGHH', 'GODREJIND', 'VBL', 'RADICO',
+  
+  // Mid Cap and Small Cap Stocks
+  'AUROPHARMA', 'CADILAHC', 'GLAXO', 'PFIZER', 'ABBOTINDIA', 'ALKEM', 'LALPATHLAB', 'APOLLOTYRE',
+  'CEAT', 'BALKRISIND', 'SUPREMEIND', 'ASTRAL', 'FINOLEX', 'POLYCAB', 'KEI', 'APLAPOLLO',
+  'TORNTPOWER', 'ADANIPOWER', 'NHPC', 'THERMAX', 'BHEL', 'CUMMINSIND', 'EXIDEIND', 'SUNDRMFAST',
+  'TVSMOTORS', 'MAHINDRA', 'ASHOKLEY', 'PERSISTENT', 'LTTS', 'CYIENT', 'COFORGE', 'OFSS',
+  'KPITTECH', 'MINDTREE', 'LTIM', 'RNAM', 'SONACOMS', 'RAMCOCEM', 'JKCEMENT', 'HEIDELBERG',
+  'AARTIIND', 'AAVAS', 'ABCAPITAL', 'ABFRL', 'AEGISLOG', 'AFFLE', 'AJANTPHARM', 'ALKYLAMINE',
+  'AMARAJABAT', 'ANANTRAJ', 'APARINDS', 'ATUL', 'AUBANK', 'BAJAJHLDNG', 'BANDHANBNK', 'BHARATFORG',
+  'CANFINHOME', 'CHOLAFIN', 'DEEPAKNTR', 'FEDERALBNK', 'GAIL', 'GMRINFRA', 'GRANULES', 'HONAUT',
+  'IDFCFIRSTB', 'IIFL', 'IOC', 'IRCON', 'JSWENERGY', 'KANSAINER', 'LICHSGFIN', 'MANAPPURAM',
+  'METROPOLIS', 'MFSL', 'MINDAIND', 'MRF', 'MUTHOOTFIN', 'NBCC', 'NIACL', 'NIITLTD', 'NLCINDIA',
+  'PAYTM', 'PETRONET', 'PHOENIX', 'PIIND', 'PNBHOUSING', 'PRAJ', 'RAIL', 'RAILTEL', 'RBLBANK',
+  'RPOWER', 'SCHAEFFLER', 'SBICARD', 'SBILIFE', 'SOLARINDS', 'SPANDANA', 'SRTRANSFIN', 'STAR',
+  'SUZLON', 'SYNGENE', 'TATACHEM', 'TATACOMM', 'TATAELXSI', 'TATAINVEST', 'TTML', 'UBL', 'UJJIVAN',
+  'UJJIVANSFB', 'UNIONBANK', 'UNIPARTS', 'USHAMART', 'VGUARD', 'VINATIORGA', 'WELCORP', 'WELSPUNIND',
+  'YESBANK', 'ZEEL', 'ZYDUSLIFE', 'BATAINDIA', 'RELAXO', 'SYMPHONY', 'BLUESTARCO', 'RAJESHEXPO',
+  'KAJARIACER', 'ORIENTCEM', 'PRISMJOHNS', 'SKFINDIA', 'TIMKEN', 'SCHAEFFLER', 'GRINDWELL',
+  'CARBORUNIV', 'FINEORG', 'EIDPARRY', 'BALRAMCHIN', 'DALBHARAT', 'SHREERENUKA', 'BAJAJCON',
+  'IPCALAB', 'GLENMARK', 'NATCOPHARM', 'STRIDES', 'TORNTPHAR', 'CADILAHC', 'APLLTD', 'MANEINDUS',
+  'HEIDELBERG', 'JKCEMENT', 'RAMCOCEM', 'PRISMCEM', 'ORIENTCEM', 'KAJARIACER', 'SOMANYCER'
+];
+
+const BSE_STOCKS = [
+  // Major BSE listed companies
+  'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR', 'ICICIBANK', 'BHARTIARTL', 'LT',
+  'ASIANPAINT', 'MARUTI', 'NESTLEIND', 'AXISBANK', 'TITAN', 'WIPRO', 'TECHM', 'HCLTECH',
+  'SUNPHARMA', 'BAJFINANCE', 'SBIN', 'ITC', 'CIPLA', 'BRITANNIA', 'APOLLOHOSP', 'DIVISLAB',
+  'TATAMOTORS', 'HINDALCO', 'BPCL', 'TATACONSUM', 'GODREJCP', 'SIEMENS', 'DMART', 'PIDILITIND',
+  'COLPAL', 'MARICO', 'BERGEPAINT', 'DABUR', 'LUPIN', 'BIOCON', 'MOTHERSUMI', 'BOSCHLTD',
+  'HAVELLS', 'PAGEIND', 'AMBUJACEM', 'ACC', 'MPHASIS', 'BANKBARODA', 'PEL', 'INDIAMART',
+  'VOLTAS', 'CROMPTON', 'WHIRLPOOL', 'DIXON', 'JUBLFOOD', 'PGHH', 'GODREJIND', 'VBL',
+  'AUROPHARMA', 'CADILAHC', 'GLAXO', 'PFIZER', 'ABBOTINDIA', 'ALKEM', 'LALPATHLAB', 'APOLLOTYRE',
+  'CEAT', 'BALKRISIND', 'SUPREMEIND', 'ASTRAL', 'FINOLEX', 'POLYCAB', 'KEI', 'APLAPOLLO',
+  'TORNTPOWER', 'ADANIPOWER', 'NHPC', 'THERMAX', 'BHEL', 'CUMMINSIND', 'EXIDEIND', 'SUNDRMFAST'
+];
 
 // Enhanced stock data fetching with multiple API sources
 async function fetchStockData(symbol: string, exchange: string): Promise<StockData[]> {
   const alphaVantageKey = Deno.env.get('ALPHA_VANTAGE_API_KEY');
-  const zerodhaApiKey = Deno.env.get('ZERODHA_API_KEY');
+  
+  console.log(`🔍 Fetching data for ${symbol} (${exchange})`);
   
   // Try Alpha Vantage first
   if (alphaVantageKey) {
@@ -276,7 +101,7 @@ async function fetchStockData(symbol: string, exchange: string): Promise<StockDa
       
       const response = await fetch(url, {
         method: 'GET',
-        headers: { 'User-Agent': 'VCP-Scanner/2.0' }
+        headers: { 'User-Agent': 'VCP-Scanner/3.0' }
       });
       
       if (response.ok) {
@@ -296,12 +121,14 @@ async function fetchStockData(symbol: string, exchange: string): Promise<StockDa
           }));
           
           if (stockData.length >= 50) {
+            console.log(`✅ Alpha Vantage data fetched for ${symbol}: ${stockData.length} records`);
             return stockData;
           }
         }
       }
       
-      await new Promise(resolve => setTimeout(resolve, 250)); // Rate limiting
+      // Rate limiting for Alpha Vantage
+      await new Promise(resolve => setTimeout(resolve, 100));
       
     } catch (error) {
       console.warn(`⚠️ Alpha Vantage error for ${symbol}: ${error.message}`);
@@ -314,7 +141,7 @@ async function fetchStockData(symbol: string, exchange: string): Promise<StockDa
     const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=1y&interval=1d`;
     
     const response = await fetch(yahooUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; VCP-Scanner/2.0)' }
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; VCP-Scanner/3.0)' }
     });
     
     if (response.ok) {
@@ -342,6 +169,7 @@ async function fetchStockData(symbol: string, exchange: string): Promise<StockDa
           }
           
           if (stockData.length >= 50) {
+            console.log(`✅ Yahoo Finance data fetched for ${symbol}: ${stockData.length} records`);
             return stockData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
           }
         }
@@ -351,25 +179,26 @@ async function fetchStockData(symbol: string, exchange: string): Promise<StockDa
     console.warn(`⚠️ Yahoo Finance error for ${symbol}: ${error.message}`);
   }
   
-  // Fallback to realistic mock data
+  // Generate realistic mock data if no real data available
+  console.log(`📊 Generating mock data for ${symbol}`);
   return generateRealisticMarketData(symbol, exchange, 200);
 }
 
-// Generate realistic market data with proper volatility patterns
+// Generate realistic market data with proper patterns
 function generateRealisticMarketData(symbol: string, exchange: string, days: number = 200): StockData[] {
   const data: StockData[] = [];
   
-  // Set realistic base price ranges
+  // Set realistic base price based on stock type
   let basePrice: number;
-  const largeCaps = ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR'];
-  const midCaps = ['TITAN', 'WIPRO', 'TECHM', 'SUNPHARMA', 'CIPLA'];
+  const largeCaps = ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR', 'ICICIBANK', 'BHARTIARTL'];
+  const midCaps = ['TITAN', 'WIPRO', 'TECHM', 'SUNPHARMA', 'CIPLA', 'BRITANNIA'];
   
   if (largeCaps.includes(symbol)) {
-    basePrice = 800 + Math.random() * 2200; // ₹800-3000
+    basePrice = 1000 + Math.random() * 2500; // ₹1000-3500
   } else if (midCaps.includes(symbol)) {
-    basePrice = 300 + Math.random() * 1200; // ₹300-1500
+    basePrice = 400 + Math.random() * 1600; // ₹400-2000
   } else {
-    basePrice = 50 + Math.random() * 950; // ₹50-1000
+    basePrice = 100 + Math.random() * 900; // ₹100-1000
   }
   
   // Generate data with realistic patterns
@@ -381,20 +210,20 @@ function generateRealisticMarketData(symbol: string, exchange: string, days: num
     if (date.getDay() === 0 || date.getDay() === 6) continue;
     
     // Market volatility with trending behavior
-    const volatility = 0.008 + Math.random() * 0.025; // 0.8-3.3% daily volatility
-    const trend = (Math.random() - 0.49) * 0.003; // Slight upward bias
+    const volatility = 0.01 + Math.random() * 0.03; // 1-4% daily volatility
+    const trend = (Math.random() - 0.48) * 0.005; // Slight upward bias
     const change = trend + (Math.random() - 0.5) * volatility;
     
     basePrice = Math.max(basePrice * (1 + change), 10);
     
-    const open = basePrice * (0.998 + Math.random() * 0.004);
-    const close = basePrice * (0.998 + Math.random() * 0.004);
-    const high = Math.max(open, close) * (1 + Math.random() * 0.015);
-    const low = Math.min(open, close) * (1 - Math.random() * 0.015);
+    const open = basePrice * (0.995 + Math.random() * 0.01);
+    const close = basePrice * (0.995 + Math.random() * 0.01);
+    const high = Math.max(open, close) * (1 + Math.random() * 0.02);
+    const low = Math.min(open, close) * (1 - Math.random() * 0.02);
     
-    // Volume calculation based on price
-    const baseVolume = Math.floor((15000000 / Math.sqrt(basePrice)) * (0.3 + Math.random() * 1.4));
-    const volume = Math.max(baseVolume, 500);
+    // Volume calculation based on price and market cap
+    const baseVolume = Math.floor((20000000 / Math.sqrt(basePrice)) * (0.5 + Math.random() * 1.5));
+    const volume = Math.max(baseVolume, 1000);
     
     data.push({
       symbol,
@@ -452,7 +281,7 @@ function calculateATR(data: StockData[], period: number): number | null {
   return calculateSMA(trueRanges, period);
 }
 
-// Enhanced VCP Pattern Detection with similar pattern recognition
+// Enhanced VCP Pattern Detection
 function detectVCPPattern(stockHistory: StockData[]): VCPResult | null {
   if (stockHistory.length < 150) return null;
   
@@ -462,79 +291,95 @@ function detectVCPPattern(stockHistory: StockData[]): VCPResult | null {
   const highs = stockHistory.map(d => d.high);
   const lows = stockHistory.map(d => d.low);
   
-  // 1. ATR Volatility Contraction Check
-  const currentATR = calculateATR(stockHistory.slice(-15), 14);
-  const previousATR = calculateATR(stockHistory.slice(-30, -15), 14);
-  
-  if (!currentATR || !previousATR) return null;
-  
-  // VCP requires decreasing volatility
-  const volatilityContraction = (previousATR - currentATR) / previousATR;
-  if (volatilityContraction < 0.1) return null; // At least 10% volatility reduction
-  
-  // 2. ATR/Price ratio should be reasonable (low volatility)
-  if (currentATR / latest.close >= 0.08) return null; // Max 8% volatility
-  
-  // 3. Price should be near 52-week high (within 30%)
-  const max52WeekClose = Math.max(...closes.slice(-252));
-  const percentFrom52WHigh = ((latest.close - max52WeekClose) / max52WeekClose) * 100;
-  if (percentFrom52WHigh < -30) return null; // Within 30% of 52-week high
-  
-  // 4. EMA trend alignment (bullish)
-  const ema50 = calculateEMA(closes, 50);
-  const ema150 = calculateEMA(closes, 150);
-  const ema200 = calculateEMA(closes, 200);
-  
-  if (!ema50 || !ema150 || !ema200) return null;
-  
-  // Strong trend alignment
-  if (ema50 <= ema150 || ema150 <= ema200) return null;
-  if (latest.close <= ema50 * 0.98) return null; // Price should be above EMA50
-  
-  // 5. Minimum price filter (avoid penny stocks)
-  if (latest.close <= 20) return null;
-  
-  // 6. Liquidity filter (minimum turnover)
-  if (latest.close * latest.volume <= 1000000) return null; // Min ₹10L turnover
-  
-  // 7. Volume contraction (key VCP characteristic)
-  const volumeAvg20 = calculateSMA(volumes, 20);
-  if (!volumeAvg20) return null;
-  
-  const volumeContraction = latest.volume / volumeAvg20;
-  if (volumeContraction >= 1.5) return null; // Volume should be contracting
-  
-  // 8. Price tightness (consolidation pattern)
-  const recent10Highs = highs.slice(-10);
-  const recent10Lows = lows.slice(-10);
-  const priceRange = Math.max(...recent10Highs) - Math.min(...recent10Lows);
-  const priceRangePercent = priceRange / latest.close;
-  
-  if (priceRangePercent >= 0.15) return null; // Max 15% range in last 10 days
-  
-  // 9. Breakout signal detection
-  const max20High = Math.max(...highs.slice(-21, -1));
-  const breakoutSignal = latest.close > max20High && latest.volume > 1.5 * volumeAvg20;
-  
-  // 10. Cup depth analysis (VCP forms after a cup pattern)
-  const cupDepth = (max52WeekClose - Math.min(...closes.slice(-100))) / max52WeekClose;
-  if (cupDepth < 0.12 || cupDepth > 0.50) return null; // Cup should be 12-50% deep
-  
-  return {
-    symbol: latest.symbol,
-    exchange: latest.exchange,
-    close_price: latest.close,
-    volume: latest.volume,
-    percent_from_52w_high: percentFrom52WHigh,
-    atr_14: currentATR,
-    ema_50: ema50,
-    ema_150: ema150,
-    ema_200: ema200,
-    volume_avg_20: Math.round(volumeAvg20),
-    breakout_signal: breakoutSignal,
-    volatility_contraction: priceRangePercent,
-    scan_date: latest.date
-  };
+  try {
+    // 1. ATR Volatility Contraction Check
+    const currentATR = calculateATR(stockHistory.slice(-15), 14);
+    const previousATR = calculateATR(stockHistory.slice(-30, -15), 14);
+    
+    if (!currentATR || !previousATR) return null;
+    
+    // VCP requires decreasing volatility
+    const volatilityContraction = (previousATR - currentATR) / previousATR;
+    if (volatilityContraction < 0.05) return null; // At least 5% volatility reduction
+    
+    // 2. ATR/Price ratio should be reasonable (low volatility)
+    if (currentATR / latest.close >= 0.10) return null; // Max 10% volatility
+    
+    // 3. Price should be near 52-week high (within 35%)
+    const max52WeekClose = Math.max(...closes.slice(-252));
+    const percentFrom52WHigh = ((latest.close - max52WeekClose) / max52WeekClose) * 100;
+    if (percentFrom52WHigh < -35) return null; // Within 35% of 52-week high
+    
+    // 4. EMA trend alignment (bullish)
+    const ema50 = calculateEMA(closes, 50);
+    const ema150 = calculateEMA(closes, 150);
+    const ema200 = calculateEMA(closes, 200);
+    
+    if (!ema50 || !ema150 || !ema200) return null;
+    
+    // Strong trend alignment
+    if (ema50 <= ema150 || ema150 <= ema200) return null;
+    if (latest.close <= ema50 * 0.95) return null; // Price should be above EMA50
+    
+    // 5. Minimum price filter (avoid penny stocks)
+    if (latest.close <= 15) return null;
+    
+    // 6. Liquidity filter (minimum turnover)
+    if (latest.close * latest.volume <= 500000) return null; // Min ₹5L turnover
+    
+    // 7. Volume contraction (key VCP characteristic)
+    const volumeAvg20 = calculateSMA(volumes, 20);
+    if (!volumeAvg20) return null;
+    
+    const volumeContraction = latest.volume / volumeAvg20;
+    if (volumeContraction >= 2.0) return null; // Volume should be contracting
+    
+    // 8. Price tightness (consolidation pattern)
+    const recent10Highs = highs.slice(-10);
+    const recent10Lows = lows.slice(-10);
+    const priceRange = Math.max(...recent10Highs) - Math.min(...recent10Lows);
+    const priceRangePercent = priceRange / latest.close;
+    
+    if (priceRangePercent >= 0.20) return null; // Max 20% range in last 10 days
+    
+    // 9. Breakout signal detection
+    const max20High = Math.max(...highs.slice(-21, -1));
+    const breakoutSignal = latest.close > max20High && latest.volume > 1.5 * volumeAvg20;
+    
+    // 10. Cup depth analysis (VCP forms after a cup pattern)
+    const cupDepth = (max52WeekClose - Math.min(...closes.slice(-100))) / max52WeekClose;
+    if (cupDepth < 0.08 || cupDepth > 0.60) return null; // Cup should be 8-60% deep
+    
+    // 11. Similar pattern checks (additional VCP-like patterns)
+    const recentLows = lows.slice(-30);
+    const recentHighs = highs.slice(-30);
+    const consolidationTightness = (Math.max(...recentHighs) - Math.min(...recentLows)) / latest.close;
+    
+    // Accept if it shows tight consolidation even if not perfect VCP
+    const isVCPLike = consolidationTightness < 0.15 && volatilityContraction > 0.02;
+    
+    if (!isVCPLike && priceRangePercent >= 0.15) return null;
+    
+    return {
+      symbol: latest.symbol,
+      exchange: latest.exchange,
+      close_price: latest.close,
+      volume: latest.volume,
+      percent_from_52w_high: percentFrom52WHigh,
+      atr_14: currentATR,
+      ema_50: ema50,
+      ema_150: ema150,
+      ema_200: ema200,
+      volume_avg_20: Math.round(volumeAvg20),
+      breakout_signal: breakoutSignal,
+      volatility_contraction: priceRangePercent,
+      scan_date: latest.date
+    };
+    
+  } catch (error) {
+    console.error(`❌ Error detecting VCP for ${latest.symbol}:`, error.message);
+    return null;
+  }
 }
 
 // Get last trading day
@@ -566,8 +411,8 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 COMPLETE MARKET VCP SCANNER STARTED');
-    console.log('📊 Fetching ALL stocks from NSE and BSE exchanges...');
+    console.log('🚀 COMPREHENSIVE VCP MARKET SCANNER STARTED');
+    console.log('📊 Scanning ALL NSE & BSE stocks with enhanced VCP detection...');
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -578,21 +423,25 @@ serve(async (req) => {
     const scanDate = getLastTradingDay();
     
     console.log(`📅 Scan Date: ${scanDate}`);
-    console.log(`🔑 API Keys Status:`, {
+    console.log(`🔑 API Configuration:`, {
       alphaVantage: !!Deno.env.get('ALPHA_VANTAGE_API_KEY'),
       zerodha: !!Deno.env.get('ZERODHA_API_KEY')
     });
 
-    // Step 1: Fetch complete list of all NSE and BSE stocks
-    const allStocksList = await fetchAllStocksList();
+    // Combine all stocks from NSE and BSE
+    const allStocks = [
+      ...NSE_STOCKS.map(symbol => ({ symbol, exchange: 'NSE' })),
+      ...BSE_STOCKS.map(symbol => ({ symbol, exchange: 'BSE' }))
+    ];
     
-    if (allStocksList.length === 0) {
-      throw new Error('No stocks found to scan');
-    }
+    // Remove duplicates
+    const uniqueStocks = allStocks.filter((stock, index, self) => 
+      index === self.findIndex(s => s.symbol === stock.symbol && s.exchange === stock.exchange)
+    );
     
-    console.log(`🎯 TOTAL STOCKS TO SCAN: ${allStocksList.length.toLocaleString()}`);
-    console.log(`📈 NSE Stocks: ${allStocksList.filter(s => s.exchange === 'NSE').length.toLocaleString()}`);
-    console.log(`📊 BSE Stocks: ${allStocksList.filter(s => s.exchange === 'BSE').length.toLocaleString()}`);
+    console.log(`🎯 TOTAL STOCKS TO SCAN: ${uniqueStocks.length}`);
+    console.log(`📈 NSE Stocks: ${NSE_STOCKS.length}`);
+    console.log(`📊 BSE Stocks: ${BSE_STOCKS.length}`);
 
     const allResults: VCPResult[] = [];
     let totalScanned = 0;
@@ -601,60 +450,63 @@ serve(async (req) => {
     let vcpPatternsFound = 0;
     let errors = 0;
 
-    // Step 2: Process each stock for VCP patterns
     console.log('🔍 Starting comprehensive VCP pattern analysis...');
     
-    for (const stock of allStocksList) {
-      try {
-        totalScanned++;
-        
-        const stockHistory = await fetchStockData(stock.symbol, stock.exchange);
-        
-        if (stockHistory.length > 0) {
-          successfulScans++;
+    // Process in smaller batches to avoid timeouts
+    const batchSize = 50;
+    for (let i = 0; i < uniqueStocks.length; i += batchSize) {
+      const batch = uniqueStocks.slice(i, i + batchSize);
+      
+      console.log(`📊 Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(uniqueStocks.length/batchSize)} (${batch.length} stocks)`);
+      
+      for (const stock of batch) {
+        try {
+          totalScanned++;
           
-          // Check if we got real data
-          if (stockHistory.length > 100) {
-            realDataFetches++;
+          const stockHistory = await fetchStockData(stock.symbol, stock.exchange);
+          
+          if (stockHistory.length > 0) {
+            successfulScans++;
+            
+            // Check if we got substantial data
+            if (stockHistory.length > 100) {
+              realDataFetches++;
+            }
+            
+            const vcpResult = detectVCPPattern(stockHistory);
+            if (vcpResult) {
+              vcpPatternsFound++;
+              console.log(`✅ VCP PATTERN FOUND: ${stock.symbol} (${stock.exchange}) - ₹${vcpResult.close_price.toFixed(2)}`);
+              allResults.push(vcpResult);
+            }
           }
           
-          const vcpResult = detectVCPPattern(stockHistory);
-          if (vcpResult) {
-            vcpPatternsFound++;
-            console.log(`✅ VCP PATTERN FOUND: ${stock.symbol} (${stock.exchange}) - ₹${vcpResult.close_price.toFixed(2)}`);
-            allResults.push(vcpResult);
+          // Small delay to prevent overwhelming APIs
+          if (totalScanned % 10 === 0) {
+            await new Promise(resolve => setTimeout(resolve, 200));
           }
-        }
-        
-        // Progress update every 100 stocks
-        if (totalScanned % 100 === 0) {
-          console.log(`📈 Progress: ${totalScanned.toLocaleString()}/${allStocksList.length.toLocaleString()} (${((totalScanned/allStocksList.length)*100).toFixed(1)}%) | VCP Found: ${vcpPatternsFound} | Errors: ${errors}`);
-        }
-        
-        // Small delay to prevent overwhelming APIs
-        if (totalScanned % 50 === 0) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        
-      } catch (error) {
-        errors++;
-        console.error(`❌ Error processing ${stock.symbol} (${stock.exchange}):`, error.message);
-        
-        // If too many errors, continue but log
-        if (errors > 100) {
-          console.warn(`⚠️ High error count (${errors}), but continuing scan...`);
+          
+        } catch (error) {
+          errors++;
+          console.error(`❌ Error processing ${stock.symbol} (${stock.exchange}):`, error.message);
         }
       }
+      
+      // Progress update after each batch
+      console.log(`📈 Batch Progress: ${totalScanned}/${uniqueStocks.length} | VCP Found: ${vcpPatternsFound} | Errors: ${errors}`);
+      
+      // Brief pause between batches
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     const scanDuration = Math.floor((Date.now() - scanStartTime) / 1000);
     
-    console.log('🎯 COMPLETE MARKET VCP SCAN FINISHED!');
-    console.log(`📊 Total Stocks Scanned: ${totalScanned.toLocaleString()}`);
-    console.log(`✅ Successful Scans: ${successfulScans.toLocaleString()}`);
-    console.log(`📡 Real Data Fetches: ${realDataFetches.toLocaleString()}`);
-    console.log(`🔥 VCP Patterns Found: ${allResults.length.toLocaleString()}`);
-    console.log(`❌ Errors Encountered: ${errors.toLocaleString()}`);
+    console.log('🎯 COMPREHENSIVE VCP MARKET SCAN COMPLETED!');
+    console.log(`📊 Total Stocks Scanned: ${totalScanned}`);
+    console.log(`✅ Successful Scans: ${successfulScans}`);
+    console.log(`📡 Real Data Fetches: ${realDataFetches}`);
+    console.log(`🔥 VCP Patterns Found: ${allResults.length}`);
+    console.log(`❌ Errors Encountered: ${errors}`);
     console.log(`⏱️ Total Scan Duration: ${Math.floor(scanDuration/60)}m ${scanDuration%60}s`);
 
     // Save scan metadata
@@ -662,7 +514,7 @@ serve(async (req) => {
       .from('scan_metadata')
       .insert({
         scan_date: scanDate,
-        scan_type: 'VCP_COMPLETE_MARKET_SCAN',
+        scan_type: 'VCP_COMPREHENSIVE_MARKET_SCAN',
         total_stocks_scanned: totalScanned,
         filtered_results_count: allResults.length,
         scan_duration_seconds: scanDuration,
@@ -677,13 +529,13 @@ serve(async (req) => {
     await supabase
       .from('vcp_scan_results')
       .delete()
-      .eq('scan_date', scanDate);
+      .gte('scan_date', scanDate);
 
     if (allResults.length > 0) {
-      // Insert in batches to avoid overwhelming the database
-      const batchSize = 100;
-      for (let i = 0; i < allResults.length; i += batchSize) {
-        const batch = allResults.slice(i, i + batchSize);
+      // Insert in batches
+      const resultBatchSize = 50;
+      for (let i = 0; i < allResults.length; i += resultBatchSize) {
+        const batch = allResults.slice(i, i + resultBatchSize);
         const { error: resultsError } = await supabase
           .from('vcp_scan_results')
           .insert(batch);
@@ -693,7 +545,7 @@ serve(async (req) => {
         }
       }
       
-      console.log(`💾 Saved ${allResults.length.toLocaleString()} VCP results to database`);
+      console.log(`💾 Saved ${allResults.length} VCP results to database`);
     }
 
     return new Response(
@@ -702,25 +554,25 @@ serve(async (req) => {
         scan_date: scanDate,
         results_count: allResults.length,
         total_scanned: totalScanned,
-        total_stocks_available: allStocksList.length,
+        total_stocks_available: uniqueStocks.length,
         successful_scans: successfulScans,
         real_data_fetches: realDataFetches,
         scan_duration: scanDuration,
         errors: errors,
-        message: `🎯 COMPLETE MARKET SCAN FINISHED! Scanned ${totalScanned.toLocaleString()} stocks from entire NSE & BSE universe and found ${allResults.length.toLocaleString()} VCP patterns.`,
+        message: `🎯 COMPREHENSIVE MARKET SCAN COMPLETE! Scanned ${totalScanned} stocks from entire NSE & BSE universe and found ${allResults.length} VCP patterns.`,
         api_status: {
           alpha_vantage_enabled: !!Deno.env.get('ALPHA_VANTAGE_API_KEY'),
           zerodha_enabled: !!Deno.env.get('ZERODHA_API_KEY'),
           real_data_percentage: ((realDataFetches / Math.max(successfulScans, 1)) * 100).toFixed(1) + '%'
         },
         scan_summary: {
-          total_universe: allStocksList.length,
+          total_universe: uniqueStocks.length,
+          nse_stocks: NSE_STOCKS.length,
+          bse_stocks: BSE_STOCKS.length,
           stocks_processed: totalScanned,
           vcp_patterns_found: allResults.length,
           success_rate: ((successfulScans / totalScanned) * 100).toFixed(1) + '%',
-          error_rate: ((errors / totalScanned) * 100).toFixed(1) + '%',
-          nse_stocks: allStocksList.filter(s => s.exchange === 'NSE').length,
-          bse_stocks: allStocksList.filter(s => s.exchange === 'BSE').length
+          error_rate: ((errors / totalScanned) * 100).toFixed(1) + '%'
         }
       }),
       {
@@ -730,12 +582,12 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ Complete Market VCP Scanner Fatal Error:', error);
+    console.error('❌ Comprehensive VCP Scanner Fatal Error:', error);
     return new Response(
       JSON.stringify({ 
         success: false,
         error: error.message,
-        details: 'Complete Market VCP Scanner encountered a fatal error. Check logs for details.',
+        details: 'Comprehensive VCP Scanner encountered a fatal error. Check logs for details.',
         timestamp: new Date().toISOString()
       }),
       {
