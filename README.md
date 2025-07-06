@@ -2,7 +2,7 @@
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/b6b5842b-ad38-4b20-aad5-a124a400ce03
+**URL**: (https://swing-scribe-dashboard.lovable.app/)
 
 ## How can I edit this code?
 
