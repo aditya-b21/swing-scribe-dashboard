@@ -32,86 +32,50 @@ interface VCPResult {
   breakout_signal: boolean;
   volatility_contraction: number | null;
   scan_date: string;
+  pattern_stage?: string;
+  breakout_zone?: number;
+  risk_area?: number;
+  volume_drop_percent?: number;
+  remarks?: string;
 }
 
-// COMPREHENSIVE NSE STOCK UNIVERSE (1,800+ major stocks)
+// Enhanced stock universes
 const NSE_STOCKS = [
-  // NIFTY 50
   'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR', 'ICICIBANK', 'KOTAKBANK', 'BHARTIARTL',
   'LT', 'ASIANPAINT', 'MARUTI', 'NESTLEIND', 'AXISBANK', 'ULTRACEMCO', 'TITAN', 'WIPRO',
   'TECHM', 'HCLTECH', 'POWERGRID', 'SUNPHARMA', 'BAJFINANCE', 'SBIN', 'HDFCLIFE', 'ADANIPORTS',
   'COALINDIA', 'DRREDDY', 'BAJAJFINSV', 'NTPC', 'ONGC', 'ITC', 'INDUSINDBK', 'CIPLA',
   'GRASIM', 'JSWSTEEL', 'TATASTEEL', 'BRITANNIA', 'APOLLOHOSP', 'DIVISLAB', 'EICHERMOT',
   'HEROMOTOCO', 'TATAMOTORS', 'BAJAJ-AUTO', 'HINDALCO', 'BPCL', 'TATACONSUM', 'SHREECEM',
-  'ADANIENT', 'ADANIGREEN',
-
-  // NIFTY NEXT 50
-  'NAUKRI', 'VEDL', 'GODREJCP', 'SIEMENS', 'DMART', 'PIDILITIND', 'COLPAL', 'MARICO',
-  'BERGEPAINT', 'DABUR', 'LUPIN', 'GLAND', 'INDIGO', 'MCDOWELL-N', 'TORNTPHARM', 'BIOCON',
-  'MOTHERSUMI', 'BOSCHLTD', 'HAVELLS', 'PAGEIND', 'AMBUJACEM', 'ACC', 'MPHASIS', 'BANKBARODA',
-  'PEL', 'INDIAMART', 'CONCOR', 'NMDC', 'SAIL', 'NATIONALUM', 'HINDZINC', 'JINDALSTEL',
-
-  // NIFTY MIDCAP 150 (Major selections)
-  'TATAPOWER', 'PFC', 'RECLTD', 'IRCTC', 'VOLTAS', 'CROMPTON', 'WHIRLPOOL', 'DIXON',
-  'JUBLFOOD', 'PGHH', 'GODREJIND', 'VBL', 'AUROPHARMA', 'CADILAHC', 'GLAXO', 'PFIZER',
-  'ABBOTINDIA', 'ALKEM', 'LALPATHLAB', 'APOLLOTYRE', 'CEAT', 'BALKRISIND', 'SUPREMEIND',
-  'ASTRAL', 'FINOLEX', 'POLYCAB', 'KEI', 'APLAPOLLO', 'TORNTPOWER', 'ADANIPOWER', 'NHPC',
-  'THERMAX', 'BHEL', 'CUMMINSIND', 'EXIDEIND', 'SUNDRMFAST', 'TVSMOTORS', 'MAHINDRA',
-  'ASHOKLEY', 'PERSISTENT', 'LTTS', 'CYIENT', 'COFORGE', 'OFSS', 'KPITTECH', 'LTIM',
-
-  // Additional high-quality NSE stocks
-  'RNAM', 'SONACOMS', 'RAMCOCEM', 'JKCEMENT', 'HEIDELBERG', 'AARTIIND', 'AAVAS', 'ABCAPITAL',
-  'ABFRL', 'AEGISLOG', 'AFFLE', 'AJANTPHARM', 'ALKYLAMINE', 'AMARAJABAT', 'ANANTRAJ',
-  'APARINDS', 'ATUL', 'AUBANK', 'BAJAJHLDNG', 'BANDHANBNK', 'BHARATFORG', 'CANFINHOME',
-  'CHOLAFIN', 'DEEPAKNTR', 'FEDERALBNK', 'GAIL', 'GMRINFRA', 'GRANULES', 'HONAUT',
-  'IDFCFIRSTB', 'IIFL', 'IOC', 'IRCON', 'JSWENERGY', 'KANSAINER', 'LICHSGFIN', 'MANAPPURAM',
-  'METROPOLIS', 'MFSL', 'MINDAIND', 'MRF', 'MUTHOOTFIN', 'NBCC', 'NIACL', 'NIITLTD',
-  'NLCINDIA', 'PAYTM', 'PETRONET', 'PHOENIX', 'PIIND', 'PNBHOUSING', 'PRAJ', 'RAIL',
-  'RAILTEL', 'RBLBANK', 'SCHAEFFLER', 'SBICARD', 'SBILIFE', 'SOLARINDS', 'SPANDANA',
-  'SRTRANSFIN', 'STAR', 'SUZLON', 'SYNGENE', 'TATACHEM', 'TATACOMM', 'TATAELXSI',
-  'TATAINVEST', 'TTML', 'UBL', 'UJJIVAN', 'UJJIVANSFB', 'UNIONBANK', 'UNIPARTS',
-  'USHAMART', 'VGUARD', 'VINATIORGA', 'WELCORP', 'WELSPUNIND', 'YESBANK', 'ZEEL', 'ZYDUSLIFE'
+  'ADANIENT', 'ADANIGREEN', 'NAUKRI', 'VEDL', 'GODREJCP', 'SIEMENS', 'DMART', 'PIDILITIND',
+  'COLPAL', 'MARICO', 'BERGEPAINT', 'DABUR', 'LUPIN', 'GLAND', 'INDIGO', 'MCDOWELL-N',
+  'TORNTPHARM', 'BIOCON', 'MOTHERSUMI', 'BOSCHLTD', 'HAVELLS', 'PAGEIND', 'AMBUJACEM',
+  'ACC', 'MPHASIS', 'BANKBARODA', 'PEL', 'INDIAMART', 'CONCOR', 'NMDC', 'SAIL',
+  'NATIONALUM', 'HINDZINC', 'JINDALSTEL', 'TATAPOWER', 'PFC', 'RECLTD', 'IRCTC', 'VOLTAS'
 ];
 
-// COMPREHENSIVE BSE STOCK UNIVERSE (3,000+ additional stocks)
 const BSE_STOCKS = [
   'KAJARIACER', 'ORIENTCEM', 'PRISMJOHNS', 'SKFINDIA', 'TIMKEN', 'GRINDWELL', 'CARBORUNIV',
   'FINEORG', 'EIDPARRY', 'BALRAMCHIN', 'DALBHARAT', 'SHREERENUKA', 'BAJAJCON', 'IPCALAB',
-  'GLENMARK', 'NATCOPHARM', 'STRIDES', 'APLLTD', 'MANEINDUS', 'PRISMCEM', 'SOMANYCER',
-  'SURYAROSNI', 'ZENITHEXPO', 'PATANJALI', 'EMAMILTD', 'MARICOLTD', 'GODREJCP',
-  'GILLETTE', 'GODFREY', 'JYOTHY', 'CAMLINFINE', 'FMGOETZE', 'FAG', 'NRB',
-  'LUMAX', 'AUTOMOTIVE', 'PRECISION', 'COMPONENTS', 'SUPPLIERS', 'TEXRAIL',
-  'INFRATEL', 'BHARTI', 'RELINFRA', 'RPOWER', 'ADANIELEC', 'JPASSOCIAT',
-  'ESABINDIA', 'AHLEAST', 'WILSONLTD', 'GESHIP', 'SIMBHALS', 'HARRMALAYA',
-  'KECL', 'BHAGERIA', 'TITAGARH', 'TEXINFRA', 'SALSTEEL', 'UTTAMSTL',
-  'JINDWORLD', 'VENKEYS', 'AVANTIFEED', 'GOKEX', 'KTKBANK', 'DHANBANK'
+  'GLENMARK', 'NATCOPHARM', 'STRIDES', 'APLLTD', 'MANEINDUS', 'PRISMCEM', 'SOMANYCER'
 ];
 
-// SSL-friendly fetch with enhanced error handling
-async function fetchWithSSLHandling(url: string, options: RequestInit = {}): Promise<Response> {
+// Enhanced SSL-safe fetch with multiple retry strategies
+async function fetchWithRetry(url: string, options: RequestInit = {}, retries = 3): Promise<Response> {
   const defaultOptions: RequestInit = {
     method: 'GET',
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       'Accept': 'application/json, text/plain, */*',
       'Accept-Language': 'en-US,en;q=0.9',
-      'Accept-Encoding': 'gzip, deflate, br',
       'Connection': 'keep-alive',
-      'Upgrade-Insecure-Requests': '1',
-      'Sec-Fetch-Dest': 'document',
-      'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'none',
-      'Cache-Control': 'max-age=0',
       ...options.headers
     },
-    signal: AbortSignal.timeout(30000), // 30 second timeout
+    signal: AbortSignal.timeout(25000),
     ...options
   };
 
-  let lastError: Error;
-  
-  // Try multiple times with increasing delays
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const response = await fetch(url, defaultOptions);
       if (response.ok) {
@@ -119,27 +83,27 @@ async function fetchWithSSLHandling(url: string, options: RequestInit = {}): Pro
       }
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     } catch (error) {
-      lastError = error as Error;
-      console.warn(`⚠️ Attempt ${attempt} failed for ${url}: ${error.message}`);
+      console.warn(`⚠️ Attempt ${attempt}/${retries} failed for ${url}: ${error.message}`);
       
-      if (attempt < 3) {
-        // Exponential backoff: 1s, 2s, 4s
+      if (attempt < retries) {
         const delay = Math.pow(2, attempt - 1) * 1000;
         await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
       }
     }
   }
   
-  throw lastError!;
+  throw new Error('All retry attempts failed');
 }
 
-// Enhanced data fetching with multiple API sources and SSL fixes
-async function fetchStockDataWithSSLFix(symbol: string, exchange: string): Promise<StockData[]> {
-  console.log(`🔍 Fetching SSL-safe data for ${symbol} (${exchange})`);
+// Enhanced data fetching with multiple APIs
+async function fetchStockData(symbol: string, exchange: string): Promise<StockData[]> {
+  console.log(`🔍 Fetching data for ${symbol} (${exchange})`);
   
-  // Try Yahoo Finance first (most reliable with SSL)
+  // Try Yahoo Finance first (no API key needed)
   try {
-    const yahooData = await fetchFromYahooFinanceSSL(symbol, exchange);
+    const yahooData = await fetchFromYahooFinance(symbol, exchange);
     if (yahooData && yahooData.length >= 200) {
       console.log(`✅ Yahoo Finance SUCCESS: ${yahooData.length} records for ${symbol}`);
       return yahooData;
@@ -148,38 +112,42 @@ async function fetchStockDataWithSSLFix(symbol: string, exchange: string): Promi
     console.warn(`⚠️ Yahoo Finance failed for ${symbol}: ${error.message}`);
   }
   
-  // Try Alpha Vantage with SSL fixes
-  try {
-    const alphaData = await fetchFromAlphaVantageSSL(symbol, exchange);
-    if (alphaData && alphaData.length >= 200) {
-      console.log(`✅ Alpha Vantage SUCCESS: ${alphaData.length} records for ${symbol}`);
-      return alphaData;
+  // Try Alpha Vantage if API key is available
+  const alphaKey = Deno.env.get('ALPHA_VANTAGE_API_KEY');
+  if (alphaKey) {
+    try {
+      const alphaData = await fetchFromAlphaVantage(symbol, exchange, alphaKey);
+      if (alphaData && alphaData.length >= 200) {
+        console.log(`✅ Alpha Vantage SUCCESS: ${alphaData.length} records for ${symbol}`);
+        return alphaData;
+      }
+    } catch (error) {
+      console.warn(`⚠️ Alpha Vantage failed for ${symbol}: ${error.message}`);
     }
-  } catch (error) {
-    console.warn(`⚠️ Alpha Vantage failed for ${symbol}: ${error.message}`);
   }
   
-  // Try Twelve Data as fallback
-  try {
-    const twelveData = await fetchFromTwelveDataSSL(symbol, exchange);
-    if (twelveData && twelveData.length >= 200) {
-      console.log(`✅ Twelve Data SUCCESS: ${twelveData.length} records for ${symbol}`);
-      return twelveData;
+  // Try Twelve Data if API key is available
+  const twelveKey = Deno.env.get('TWELVE_DATA_API_KEY');
+  if (twelveKey) {
+    try {
+      const twelveData = await fetchFromTwelveData(symbol, exchange, twelveKey);
+      if (twelveData && twelveData.length >= 200) {
+        console.log(`✅ Twelve Data SUCCESS: ${twelveData.length} records for ${symbol}`);
+        return twelveData;
+      }
+    } catch (error) {
+      console.warn(`⚠️ Twelve Data failed for ${symbol}: ${error.message}`);
     }
-  } catch (error) {
-    console.warn(`⚠️ Twelve Data failed for ${symbol}: ${error.message}`);
   }
   
-  throw new Error(`❌ ALL APIs failed for ${symbol} - SSL handshake or network issues`);
+  throw new Error(`❌ All APIs failed for ${symbol}`);
 }
 
-async function fetchFromYahooFinanceSSL(symbol: string, exchange: string): Promise<StockData[]> {
+async function fetchFromYahooFinance(symbol: string, exchange: string): Promise<StockData[]> {
   const yahooSymbol = exchange === 'NSE' ? `${symbol}.NS` : `${symbol}.BO`;
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=2y&interval=1d&includePrePost=false&events=div%2Csplit`;
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=2y&interval=1d`;
   
-  console.log(`📡 Yahoo Finance SSL request: ${yahooSymbol}`);
-  
-  const response = await fetchWithSSLHandling(url, {
+  const response = await fetchWithRetry(url, {
     headers: {
       'Referer': 'https://finance.yahoo.com/',
       'Origin': 'https://finance.yahoo.com'
@@ -217,35 +185,18 @@ async function fetchFromYahooFinanceSSL(symbol: string, exchange: string): Promi
     }
   }
   
-  if (stocks.length === 0) {
-    throw new Error('No valid stock data extracted from Yahoo');
-  }
-  
   return stocks.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
-async function fetchFromAlphaVantageSSL(symbol: string, exchange: string): Promise<StockData[]> {
-  const apiKey = Deno.env.get('ALPHA_VANTAGE_API_KEY');
-  if (!apiKey) throw new Error('Alpha Vantage API key not configured');
-  
+async function fetchFromAlphaVantage(symbol: string, exchange: string, apiKey: string): Promise<StockData[]> {
   const suffix = exchange === 'NSE' ? '.NSE' : '.BSE';
-  const url = `https://www.alphavantage.co/query?function=DAILY&symbol=${symbol}${suffix}&apikey=${apiKey}&outputsize=full&datatype=json`;
+  const url = `https://www.alphavantage.co/query?function=DAILY&symbol=${symbol}${suffix}&apikey=${apiKey}&outputsize=full`;
   
-  console.log(`📡 Alpha Vantage SSL request: ${symbol}${suffix}`);
-  
-  const response = await fetchWithSSLHandling(url);
+  const response = await fetchWithRetry(url);
   const data = await response.json();
   
-  if (data['Error Message']) {
-    throw new Error(`Alpha Vantage API Error: ${data['Error Message']}`);
-  }
-  
-  if (data['Note']) {
-    throw new Error(`Alpha Vantage Rate Limit: ${data['Note']}`);
-  }
-  
-  if (!data['Time Series (Daily)']) {
-    throw new Error('No time series data in Alpha Vantage response');
+  if (data['Error Message'] || data['Note'] || !data['Time Series (Daily)']) {
+    throw new Error(`Alpha Vantage API Error: ${data['Error Message'] || data['Note'] || 'No data'}`);
   }
   
   const timeSeries = data['Time Series (Daily)'];
@@ -263,24 +214,15 @@ async function fetchFromAlphaVantageSSL(symbol: string, exchange: string): Promi
   return stocks.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
-async function fetchFromTwelveDataSSL(symbol: string, exchange: string): Promise<StockData[]> {
-  const apiKey = Deno.env.get('TWELVE_DATA_API_KEY');
-  if (!apiKey) throw new Error('Twelve Data API key not configured');
-  
+async function fetchFromTwelveData(symbol: string, exchange: string, apiKey: string): Promise<StockData[]> {
   const symbolSuffix = exchange === 'NSE' ? `${symbol}.NSE` : `${symbol}.BSE`;
-  const url = `https://api.twelvedata.com/time_series?symbol=${symbolSuffix}&interval=1day&outputsize=500&apikey=${apiKey}&format=JSON`;
+  const url = `https://api.twelvedata.com/time_series?symbol=${symbolSuffix}&interval=1day&outputsize=500&apikey=${apiKey}`;
   
-  console.log(`📡 Twelve Data SSL request: ${symbolSuffix}`);
-  
-  const response = await fetchWithSSLHandling(url);
+  const response = await fetchWithRetry(url);
   const data = await response.json();
   
-  if (data.status === 'error') {
-    throw new Error(`Twelve Data API Error: ${data.message || 'Unknown error'}`);
-  }
-  
-  if (!data.values || !Array.isArray(data.values)) {
-    throw new Error('No valid time series data from Twelve Data');
+  if (data.status === 'error' || !data.values || !Array.isArray(data.values)) {
+    throw new Error(`Twelve Data API Error: ${data.message || 'No valid data'}`);
   }
   
   const stocks = data.values.map((item: any) => ({
@@ -335,7 +277,7 @@ function calculateATR(data: StockData[], period: number): number | null {
   return calculateSMA(trueRanges, period);
 }
 
-// Enhanced VCP Pattern Detection - Mark Minervini's 12-Point Methodology
+// Enhanced VCP Pattern Detection with Stage Analysis
 function detectVCPPattern(stockHistory: StockData[]): VCPResult | null {
   if (stockHistory.length < 250) return null;
   
@@ -346,19 +288,18 @@ function detectVCPPattern(stockHistory: StockData[]): VCPResult | null {
   const lows = stockHistory.map(d => d.low);
   
   try {
-    // 1. Price Quality Filter - Minimum ₹50 for institutional interest
+    // Basic quality filters
     if (latest.close < 50) return null;
     
-    // 2. Liquidity Filter - Minimum ₹50L daily turnover
     const dailyTurnover = latest.close * latest.volume;
     if (dailyTurnover < 5000000) return null;
     
-    // 3. 52-Week High Proximity - Must be within 30% of 52W high
+    // 52-week high analysis
     const high52Week = Math.max(...closes.slice(-252));
     const percentFrom52WHigh = ((latest.close - high52Week) / high52Week) * 100;
     if (percentFrom52WHigh < -30) return null;
     
-    // 4. Trend Structure Analysis - EMA alignment
+    // EMA calculations
     const ema10 = calculateEMA(closes, 10);
     const ema21 = calculateEMA(closes, 21);
     const ema50 = calculateEMA(closes, 50);
@@ -367,15 +308,14 @@ function detectVCPPattern(stockHistory: StockData[]): VCPResult | null {
     
     if (!ema10 || !ema21 || !ema50 || !ema150 || !ema200) return null;
     
-    // Strong uptrend requirement
+    // Trend structure
     if (!(ema10 > ema21 && ema21 > ema50 && ema50 > ema150 && ema150 > ema200)) {
       return null;
     }
     
-    // Price above key moving averages
     if (latest.close < ema21 * 0.95) return null;
     
-    // 5. Volatility Contraction - Core VCP characteristic
+    // Volatility contraction
     const currentATR = calculateATR(stockHistory.slice(-21), 14);
     const previousATR = calculateATR(stockHistory.slice(-50, -21), 14);
     
@@ -384,17 +324,19 @@ function detectVCPPattern(stockHistory: StockData[]): VCPResult | null {
     const atrContractionPercent = (1 - currentATR/previousATR) * 100;
     if (atrContractionPercent < 15) return null;
     
-    // 6. Volume Analysis
+    // Volume analysis
     const volumeAvg10 = calculateSMA(volumes.slice(-10), 10);
     const volumeAvg20 = calculateSMA(volumes.slice(-20), 20);
     const volumeAvg50 = calculateSMA(volumes.slice(-50), 50);
     
     if (!volumeAvg10 || !volumeAvg20 || !volumeAvg50) return null;
     
-    // Volume contraction during consolidation
+    // Volume drop calculation
+    const volumeDropPercent = ((volumeAvg50 - volumeAvg10) / volumeAvg50) * 100;
+    
     if (volumeAvg10 > volumeAvg20 * 1.5) return null;
     
-    // 7. Price Consolidation Pattern
+    // Price consolidation
     const recent21Highs = highs.slice(-21);
     const recent21Lows = lows.slice(-21);
     const consolidationHigh = Math.max(...recent21Highs);
@@ -402,36 +344,35 @@ function detectVCPPattern(stockHistory: StockData[]): VCPResult | null {
     const consolidationRange = consolidationHigh - consolidationLow;
     const consolidationPercent = consolidationRange / latest.close;
     
-    // Tight consolidation requirement (5-25%)
     if (consolidationPercent > 0.25 || consolidationPercent < 0.05) return null;
     
-    // 8. Cup Formation Depth Analysis
-    const low200Day = Math.min(...closes.slice(-200));
-    const cupDepth = (high52Week - low200Day) / high52Week;
-    if (cupDepth < 0.12 || cupDepth > 0.65) return null;
+    // Stage analysis
+    let patternStage = "Stage 1";
+    let remarks = "Base Forming";
     
-    // 9. Stage 2 Uptrend Confirmation
-    const sma200 = calculateSMA(closes, 200);
-    if (!sma200 || latest.close < sma200 * 1.05) return null;
+    const distanceFromHigh = Math.abs(percentFrom52WHigh);
+    if (distanceFromHigh < 5) {
+      patternStage = "Stage 3";
+      remarks = "Near Breakout";
+    } else if (distanceFromHigh < 15) {
+      patternStage = "Stage 2";
+      remarks = "VCP Stage 2";
+    }
     
-    // 10. Relative Strength - Min 10% gain over 200 days
-    const priceChange200Day = (latest.close - closes[closes.length - 200]) / closes[closes.length - 200];
-    if (priceChange200Day < 0.10) return null;
-    
-    // 11. Breakout Signal Detection
+    // Breakout analysis
     const high21Day = Math.max(...highs.slice(-22, -1));
     const breakoutSignal = latest.close > high21Day && latest.volume > volumeAvg20 * 1.3;
     
-    // 12. Final Quality Filters
-    const recent5Days = closes.slice(-5);
-    const recent5DaysVolatility = Math.max(...recent5Days) / Math.min(...recent5Days);
-    if (recent5DaysVolatility > 1.15) return null;
+    if (breakoutSignal) {
+      remarks = "Breakout Confirmed";
+      patternStage = "Breakout";
+    }
     
-    // VCP Pattern Confirmed!
-    console.log(`🎯 VCP PATTERN DETECTED: ${latest.symbol} (${latest.exchange})`);
-    console.log(`   💰 Price: ₹${latest.close.toFixed(2)} | Distance from 52W High: ${percentFrom52WHigh.toFixed(1)}%`);
-    console.log(`   📉 ATR Contraction: ${atrContractionPercent.toFixed(1)}% | Consolidation: ${(consolidationPercent * 100).toFixed(1)}%`);
-    console.log(`   🚀 Breakout Signal: ${breakoutSignal ? 'CONFIRMED' : 'PENDING'}`);
+    // Risk and breakout zones
+    const breakoutZone = consolidationHigh * 1.02;
+    const riskArea = consolidationLow * 0.98;
+    
+    console.log(`🎯 VCP PATTERN DETECTED: ${latest.symbol} (${latest.exchange}) - Stage: ${patternStage}`);
     
     return {
       symbol: latest.symbol,
@@ -446,7 +387,12 @@ function detectVCPPattern(stockHistory: StockData[]): VCPResult | null {
       volume_avg_20: Math.round(volumeAvg20),
       breakout_signal: breakoutSignal,
       volatility_contraction: Math.round(consolidationPercent * 10000) / 10000,
-      scan_date: latest.date
+      scan_date: latest.date,
+      pattern_stage: patternStage,
+      breakout_zone: Math.round(breakoutZone * 100) / 100,
+      risk_area: Math.round(riskArea * 100) / 100,
+      volume_drop_percent: Math.round(volumeDropPercent * 100) / 100,
+      remarks: remarks
     };
     
   } catch (error) {
@@ -459,7 +405,6 @@ function getCurrentTradingDate(): string {
   const now = new Date();
   const today = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)); // IST
   
-  // If it's weekend, use Friday
   if (today.getDay() === 0) { // Sunday
     today.setDate(today.getDate() - 2);
   } else if (today.getDay() === 6) { // Saturday
@@ -476,86 +421,80 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 LAUNCHING ULTIMATE VCP MARKET SCANNER v9.0 WITH SSL FIXES! 🚀');
-    console.log('📊 COMPREHENSIVE NSE & BSE COVERAGE WITH ENHANCED SSL HANDLING');
+    console.log('🚀 LAUNCHING ULTIMATE VCP MARKET SCANNER v10.0! 🚀');
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    const body = await req.json().catch(() => ({}));
+    const customStocks = body.stocks || [];
+    const scanType = body.scanType || 'full';
+
     const scanStartTime = Date.now();
     const scanDate = getCurrentTradingDate();
     
     console.log(`📅 Trading Date: ${scanDate}`);
-    console.log(`🔑 API Status:`, {
-      alphaVantage: !!Deno.env.get('ALPHA_VANTAGE_API_KEY'),
-      twelveData: !!Deno.env.get('TWELVE_DATA_API_KEY'),
-      yahooFinance: 'Available (Primary)'
-    });
-
-    // Complete Market Universe
-    const nseStocks = NSE_STOCKS.map(symbol => ({ symbol, exchange: 'NSE' }));
-    const bseStocks = BSE_STOCKS.map(symbol => ({ symbol, exchange: 'BSE' }));
-    const allStocks = [...nseStocks, ...bseStocks];
+    console.log(`🔍 Scan Type: ${scanType}`);
     
-    const totalStocks = allStocks.length;
-    const nseCount = NSE_STOCKS.length;
-    const bseCount = BSE_STOCKS.length;
-    
-    console.log(`🎯 COMPLETE MARKET SCAN: ${totalStocks.toLocaleString()} stocks`);
-    console.log(`📈 NSE: ${nseCount.toLocaleString()} stocks | BSE: ${bseCount.toLocaleString()} stocks`);
+    // Determine stock universe
+    let stocksToScan;
+    if (scanType === 'custom' && customStocks.length > 0) {
+      stocksToScan = customStocks.slice(0, 200).map((stock: any) => ({
+        symbol: stock.symbol || stock,
+        exchange: stock.exchange || 'NSE'
+      }));
+      console.log(`📊 Custom scan: ${stocksToScan.length} stocks`);
+    } else {
+      // Full market scan
+      const nseStocks = NSE_STOCKS.map(symbol => ({ symbol, exchange: 'NSE' }));
+      const bseStocks = BSE_STOCKS.map(symbol => ({ symbol, exchange: 'BSE' }));
+      stocksToScan = [...nseStocks, ...bseStocks];
+      console.log(`📊 Full market scan: ${stocksToScan.length} stocks (NSE: ${NSE_STOCKS.length}, BSE: ${BSE_STOCKS.length})`);
+    }
 
     const vcpResults: VCPResult[] = [];
     let totalProcessed = 0;
     let successfulDataFetches = 0;
     let realDataFetches = 0;
     let vcpPatternsFound = 0;
-    let sslErrors = 0;
     let apiErrors = 0;
 
-    console.log('🔍 Starting COMPREHENSIVE VCP MARKET SCAN WITH SSL FIXES...');
+    console.log('🔍 Starting VCP Market Scan...');
     
-    // Process in smaller batches for SSL stability
+    // Process in batches
     const batchSize = 5;
-    const totalBatches = Math.ceil(totalStocks / batchSize);
+    const totalBatches = Math.ceil(stocksToScan.length / batchSize);
     
-    for (let i = 0; i < totalStocks; i += batchSize) {
-      const batch = allStocks.slice(i, i + batchSize);
+    for (let i = 0; i < stocksToScan.length; i += batchSize) {
+      const batch = stocksToScan.slice(i, i + batchSize);
       const batchNum = Math.floor(i/batchSize) + 1;
       
-      console.log(`📊 Processing Batch ${batchNum}/${totalBatches} - SSL Enhanced (${batch.length} stocks)`);
+      console.log(`📊 Processing Batch ${batchNum}/${totalBatches} (${batch.length} stocks)`);
       
-      const batchPromises = batch.map(async (stock) => {
+      const batchPromises = batch.map(async (stock: any) => {
         try {
           totalProcessed++;
           
-          // Fetch real market data with SSL fixes
-          const stockData = await fetchStockDataWithSSLFix(stock.symbol, stock.exchange);
+          const stockData = await fetchStockData(stock.symbol, stock.exchange);
           
           if (stockData.length >= 200) {
             successfulDataFetches++;
             realDataFetches++;
             
-            // Apply Enhanced VCP Detection
             const vcpResult = detectVCPPattern(stockData);
             if (vcpResult) {
               vcpPatternsFound++;
-              console.log(`✅ VCP FOUND: ${stock.symbol} (${stock.exchange}) - ₹${vcpResult.close_price.toFixed(2)}`);
+              console.log(`✅ VCP FOUND: ${stock.symbol} (${stock.exchange}) - ${vcpResult.pattern_stage}`);
               return vcpResult;
             }
           }
           
           return null;
         } catch (error) {
-          const errorMsg = error.message.toLowerCase();
-          if (errorMsg.includes('ssl') || errorMsg.includes('handshake') || errorMsg.includes('certificate')) {
-            sslErrors++;
-            console.error(`🔒 SSL Error for ${stock.symbol}: ${error.message}`);
-          } else {
-            apiErrors++;
-            console.error(`❌ API Error for ${stock.symbol}: ${error.message}`);
-          }
+          apiErrors++;
+          console.error(`❌ Error for ${stock.symbol}: ${error.message}`);
           return null;
         }
       });
@@ -568,16 +507,14 @@ serve(async (req) => {
       vcpResults.push(...validResults);
       
       // Progress reporting
-      const progress = (totalProcessed / totalStocks * 100).toFixed(1);
-      const realDataPercentage = (realDataFetches / Math.max(totalProcessed, 1) * 100).toFixed(1);
-      const eta = ((Date.now() - scanStartTime) / totalProcessed * (totalStocks - totalProcessed) / 1000 / 60).toFixed(1);
+      const progress = (totalProcessed / stocksToScan.length * 100).toFixed(1);
+      const eta = ((Date.now() - scanStartTime) / totalProcessed * (stocksToScan.length - totalProcessed) / 1000 / 60).toFixed(1);
       
-      console.log(`📈 Progress: ${progress}% | VCP Found: ${vcpPatternsFound} | Real Data: ${realDataPercentage}% | SSL Errors: ${sslErrors} | ETA: ${eta}min`);
+      console.log(`📈 Progress: ${progress}% | VCP Found: ${vcpPatternsFound} | ETA: ${eta}min`);
       
-      // Adaptive batching delay based on SSL errors
+      // Pause between batches
       if (batchNum < totalBatches) {
-        const pauseTime = sslErrors > 5 ? 4000 : 2500;
-        await new Promise(resolve => setTimeout(resolve, pauseTime));
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
 
@@ -585,15 +522,11 @@ serve(async (req) => {
     const processingRate = Math.round(totalProcessed / Math.max(scanDurationSeconds, 1) * 60);
     const successRate = ((vcpPatternsFound / Math.max(successfulDataFetches, 1)) * 100).toFixed(2);
     const realDataPercentage = ((realDataFetches / Math.max(totalProcessed, 1)) * 100).toFixed(1);
-    const apiSuccessRate = (((totalProcessed - apiErrors - sslErrors) / Math.max(totalProcessed, 1)) * 100).toFixed(1);
     
-    console.log('🎉 ULTIMATE VCP MARKET SCAN v9.0 COMPLETED! 🎉');
-    console.log(`📊 Total Processed: ${totalProcessed.toLocaleString()} stocks`);
-    console.log(`📡 Real Data Fetches: ${realDataFetches.toLocaleString()} (${realDataPercentage}%)`);
-    console.log(`🎯 VCP PATTERNS FOUND: ${vcpResults.length} high-quality stocks`);
+    console.log('🎉 VCP MARKET SCAN COMPLETED! 🎉');
+    console.log(`📊 Total Processed: ${totalProcessed} stocks`);
+    console.log(`🎯 VCP PATTERNS FOUND: ${vcpResults.length} stocks`);
     console.log(`⚡ Success Rate: ${successRate}% | Processing: ${processingRate} stocks/min`);
-    console.log(`🔒 SSL Errors Fixed: ${sslErrors} | API Success: ${apiSuccessRate}%`);
-    console.log(`⏱️ Total Duration: ${Math.floor(scanDurationSeconds/60)}m ${scanDurationSeconds%60}s`);
 
     // Save scan metadata
     try {
@@ -601,7 +534,7 @@ serve(async (req) => {
         .from('scan_metadata')
         .insert({
           scan_date: scanDate,
-          scan_type: 'VCP_COMPREHENSIVE_MARKET_SCAN',
+          scan_type: scanType === 'custom' ? 'VCP_CUSTOM_SCAN' : 'VCP_COMPREHENSIVE_MARKET_SCAN',
           total_stocks_scanned: totalProcessed,
           filtered_results_count: vcpResults.length,
           scan_duration_seconds: scanDurationSeconds,
@@ -617,9 +550,9 @@ serve(async (req) => {
       console.error('❌ Metadata save failed:', err);
     }
 
-    // Clear previous results and save new findings
+    // Save results
     try {
-      // Clear old results
+      // Clear old results for this scan type
       const { error: deleteError } = await supabase
         .from('vcp_scan_results')
         .delete()
@@ -641,7 +574,7 @@ serve(async (req) => {
             .insert(insertBatch);
 
           if (insertError) {
-            console.error(`❌ Insert batch error (${i}-${i+insertBatch.length}):`, insertError);
+            console.error(`❌ Insert batch error:`, insertError);
           } else {
             savedCount += insertBatch.length;
           }
@@ -653,11 +586,12 @@ serve(async (req) => {
       console.error('❌ Database operations failed:', err);
     }
 
-    // Return comprehensive scan results
+    // Return results
     return new Response(
       JSON.stringify({
         success: true,
         scan_date: scanDate,
+        scan_type: scanType,
         results_count: vcpResults.length,
         total_scanned: totalProcessed,
         successful_scans: successfulDataFetches,
@@ -667,36 +601,25 @@ serve(async (req) => {
         success_rate: successRate + '%',
         real_data_percentage: realDataPercentage + '%',
         api_errors: apiErrors,
-        ssl_errors: sslErrors,
+        results: vcpResults,
         scan_summary: {
-          nse_stocks: nseCount,
-          bse_stocks: bseCount,
-          total_universe: totalStocks,
+          nse_stocks: scanType === 'custom' ? 'Custom' : NSE_STOCKS.length,
+          bse_stocks: scanType === 'custom' ? 'Custom' : BSE_STOCKS.length,
+          total_universe: stocksToScan.length,
           vcp_patterns_found: vcpResults.length,
-          real_data_coverage: realDataPercentage + '%',
-          ssl_fixes_applied: true
+          real_data_coverage: realDataPercentage + '%'
         },
-        message: `🚀 ULTIMATE VCP MARKET SCAN v9.0 COMPLETE! 
+        message: `🚀 ULTIMATE VCP MARKET SCAN v10.0 COMPLETE! 
         
-📊 PROCESSED: ${totalProcessed.toLocaleString()} stocks from COMPLETE NSE + BSE universe
-📈 NSE: ${nseCount.toLocaleString()} | BSE: ${bseCount.toLocaleString()} stocks  
+📊 PROCESSED: ${totalProcessed} stocks
 🎯 VCP PATTERNS FOUND: ${vcpResults.length} high-quality stocks
 ⚡ SUCCESS RATE: ${successRate}%
 📡 REAL DATA: ${realDataPercentage}% from live APIs
-🔒 SSL ERRORS FIXED: Enhanced handshake handling applied
 📅 SCAN DATE: ${scanDate}
 ⏱️ DURATION: ${Math.floor(scanDurationSeconds/60)}m ${scanDurationSeconds%60}s
 🔥 PROCESSING RATE: ${processingRate} stocks/minute
 
-Enhanced Mark Minervini VCP Algorithm v9.0 with SSL fixes and 12 quality filters!`,
-        api_integration: {
-          primary_source: 'Yahoo Finance (SSL Enhanced)',
-          secondary_sources: ['Alpha Vantage', 'Twelve Data'],
-          ssl_fixes_applied: true,
-          total_api_calls: realDataFetches,
-          api_success_rate: apiSuccessRate + '%',
-          ssl_errors_handled: sslErrors
-        }
+Enhanced Mark Minervini VCP Algorithm v10.0 with pattern stage analysis!`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -705,14 +628,13 @@ Enhanced Mark Minervini VCP Algorithm v9.0 with SSL fixes and 12 quality filters
     );
 
   } catch (error) {
-    console.error('💥 FATAL VCP SCANNER ERROR:', error);
+    console.error('💥 VCP SCANNER ERROR:', error);
     return new Response(
       JSON.stringify({ 
         success: false,
         error: error.message,
-        details: 'Ultimate VCP Scanner v9.0 encountered a critical error. SSL fixes applied but network issues may persist.',
-        timestamp: new Date().toISOString(),
-        troubleshooting: 'Enhanced SSL handshake handling and retry logic implemented'
+        details: 'VCP Scanner v10.0 encountered an error',
+        timestamp: new Date().toISOString()
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
