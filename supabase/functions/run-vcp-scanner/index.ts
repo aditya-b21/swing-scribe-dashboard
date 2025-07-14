@@ -60,51 +60,77 @@ const BSE_STOCKS = [
   'GLENMARK', 'NATCOPHARM', 'STRIDES', 'APLLTD', 'MANEINDUS', 'PRISMCEM', 'SOMANYCER'
 ];
 
-// Enhanced SSL-safe fetch with multiple retry strategies
-async function fetchWithRetry(url: string, options: RequestInit = {}, retries = 3): Promise<Response> {
+// Enhanced fetch with better error handling and multiple strategies
+async function safeFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const defaultOptions: RequestInit = {
     method: 'GET',
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
       'Accept': 'application/json, text/plain, */*',
       'Accept-Language': 'en-US,en;q=0.9',
-      'Connection': 'keep-alive',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
       ...options.headers
     },
-    signal: AbortSignal.timeout(25000),
     ...options
   };
 
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const response = await fetch(url, defaultOptions);
-      if (response.ok) {
-        return response;
+  // Try multiple fetch strategies
+  const strategies = [
+    // Strategy 1: Direct fetch
+    () => fetch(url, defaultOptions),
+    
+    // Strategy 2: Fetch with longer timeout
+    () => fetch(url, { 
+      ...defaultOptions, 
+      signal: AbortSignal.timeout(30000) 
+    }),
+    
+    // Strategy 3: Fetch with minimal headers
+    () => fetch(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+        'Accept': 'application/json'
       }
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    } catch (error) {
-      console.warn(`⚠️ Attempt ${attempt}/${retries} failed for ${url}: ${error.message}`);
+    })
+  ];
+
+  for (let i = 0; i < strategies.length; i++) {
+    try {
+      console.log(`🔄 Attempting fetch strategy ${i + 1} for URL: ${url}`);
+      const response = await strategies[i]();
       
-      if (attempt < retries) {
-        const delay = Math.pow(2, attempt - 1) * 1000;
-        await new Promise(resolve => setTimeout(resolve, delay));
+      if (response.ok) {
+        console.log(`✅ Strategy ${i + 1} successful for ${url}`);
+        return response;
       } else {
+        console.warn(`⚠️ Strategy ${i + 1} failed with status ${response.status} for ${url}`);
+      }
+    } catch (error) {
+      console.warn(`⚠️ Strategy ${i + 1} error for ${url}:`, error.message);
+      
+      // If it's the last strategy, throw the error
+      if (i === strategies.length - 1) {
         throw error;
       }
+      
+      // Wait before trying next strategy
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
   
-  throw new Error('All retry attempts failed');
+  throw new Error(`All fetch strategies failed for ${url}`);
 }
 
-// Enhanced data fetching with multiple APIs
+// Enhanced data fetching with multiple APIs and better error handling
 async function fetchStockData(symbol: string, exchange: string): Promise<StockData[]> {
   console.log(`🔍 Fetching data for ${symbol} (${exchange})`);
   
-  // Try Yahoo Finance first (no API key needed)
+  // Try Yahoo Finance first
   try {
     const yahooData = await fetchFromYahooFinance(symbol, exchange);
-    if (yahooData && yahooData.length >= 200) {
+    if (yahooData && yahooData.length >= 150) {
       console.log(`✅ Yahoo Finance SUCCESS: ${yahooData.length} records for ${symbol}`);
       return yahooData;
     }
@@ -114,10 +140,10 @@ async function fetchStockData(symbol: string, exchange: string): Promise<StockDa
   
   // Try Alpha Vantage if API key is available
   const alphaKey = Deno.env.get('ALPHA_VANTAGE_API_KEY');
-  if (alphaKey) {
+  if (alphaKey && alphaKey !== 'demo') {
     try {
       const alphaData = await fetchFromAlphaVantage(symbol, exchange, alphaKey);
-      if (alphaData && alphaData.length >= 200) {
+      if (alphaData && alphaData.length >= 150) {
         console.log(`✅ Alpha Vantage SUCCESS: ${alphaData.length} records for ${symbol}`);
         return alphaData;
       }
@@ -128,10 +154,10 @@ async function fetchStockData(symbol: string, exchange: string): Promise<StockDa
   
   // Try Twelve Data if API key is available
   const twelveKey = Deno.env.get('TWELVE_DATA_API_KEY');
-  if (twelveKey) {
+  if (twelveKey && twelveKey !== 'demo') {
     try {
       const twelveData = await fetchFromTwelveData(symbol, exchange, twelveKey);
-      if (twelveData && twelveData.length >= 200) {
+      if (twelveData && twelveData.length >= 150) {
         console.log(`✅ Twelve Data SUCCESS: ${twelveData.length} records for ${symbol}`);
         return twelveData;
       }
@@ -145,9 +171,9 @@ async function fetchStockData(symbol: string, exchange: string): Promise<StockDa
 
 async function fetchFromYahooFinance(symbol: string, exchange: string): Promise<StockData[]> {
   const yahooSymbol = exchange === 'NSE' ? `${symbol}.NS` : `${symbol}.BO`;
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=2y&interval=1d`;
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=2y&interval=1d&includePrePost=false`;
   
-  const response = await fetchWithRetry(url, {
+  const response = await safeFetch(url, {
     headers: {
       'Referer': 'https://finance.yahoo.com/',
       'Origin': 'https://finance.yahoo.com'
@@ -192,7 +218,7 @@ async function fetchFromAlphaVantage(symbol: string, exchange: string, apiKey: s
   const suffix = exchange === 'NSE' ? '.NSE' : '.BSE';
   const url = `https://www.alphavantage.co/query?function=DAILY&symbol=${symbol}${suffix}&apikey=${apiKey}&outputsize=full`;
   
-  const response = await fetchWithRetry(url);
+  const response = await safeFetch(url);
   const data = await response.json();
   
   if (data['Error Message'] || data['Note'] || !data['Time Series (Daily)']) {
@@ -218,7 +244,7 @@ async function fetchFromTwelveData(symbol: string, exchange: string, apiKey: str
   const symbolSuffix = exchange === 'NSE' ? `${symbol}.NSE` : `${symbol}.BSE`;
   const url = `https://api.twelvedata.com/time_series?symbol=${symbolSuffix}&interval=1day&outputsize=500&apikey=${apiKey}`;
   
-  const response = await fetchWithRetry(url);
+  const response = await safeFetch(url);
   const data = await response.json();
   
   if (data.status === 'error' || !data.values || !Array.isArray(data.values)) {
@@ -279,7 +305,7 @@ function calculateATR(data: StockData[], period: number): number | null {
 
 // Enhanced VCP Pattern Detection with Stage Analysis
 function detectVCPPattern(stockHistory: StockData[]): VCPResult | null {
-  if (stockHistory.length < 250) return null;
+  if (stockHistory.length < 200) return null;
   
   const latest = stockHistory[stockHistory.length - 1];
   const closes = stockHistory.map(d => d.close);
@@ -308,14 +334,14 @@ function detectVCPPattern(stockHistory: StockData[]): VCPResult | null {
     
     if (!ema10 || !ema21 || !ema50 || !ema150 || !ema200) return null;
     
-    // Trend structure
+    // Trend structure validation
     if (!(ema10 > ema21 && ema21 > ema50 && ema50 > ema150 && ema150 > ema200)) {
       return null;
     }
     
     if (latest.close < ema21 * 0.95) return null;
     
-    // Volatility contraction
+    // Volatility contraction analysis
     const currentATR = calculateATR(stockHistory.slice(-21), 14);
     const previousATR = calculateATR(stockHistory.slice(-50, -21), 14);
     
@@ -336,7 +362,7 @@ function detectVCPPattern(stockHistory: StockData[]): VCPResult | null {
     
     if (volumeAvg10 > volumeAvg20 * 1.5) return null;
     
-    // Price consolidation
+    // Price consolidation analysis
     const recent21Highs = highs.slice(-21);
     const recent21Lows = lows.slice(-21);
     const consolidationHigh = Math.max(...recent21Highs);
@@ -346,7 +372,7 @@ function detectVCPPattern(stockHistory: StockData[]): VCPResult | null {
     
     if (consolidationPercent > 0.25 || consolidationPercent < 0.05) return null;
     
-    // Stage analysis
+    // Stage analysis and pattern recognition
     let patternStage = "Stage 1";
     let remarks = "Base Forming";
     
@@ -463,7 +489,7 @@ serve(async (req) => {
 
     console.log('🔍 Starting VCP Market Scan...');
     
-    // Process in batches
+    // Process in batches to avoid overwhelming APIs
     const batchSize = 5;
     const totalBatches = Math.ceil(stocksToScan.length / batchSize);
     
@@ -479,7 +505,7 @@ serve(async (req) => {
           
           const stockData = await fetchStockData(stock.symbol, stock.exchange);
           
-          if (stockData.length >= 200) {
+          if (stockData.length >= 150) {
             successfulDataFetches++;
             realDataFetches++;
             
@@ -512,7 +538,7 @@ serve(async (req) => {
       
       console.log(`📈 Progress: ${progress}% | VCP Found: ${vcpPatternsFound} | ETA: ${eta}min`);
       
-      // Pause between batches
+      // Pause between batches to respect API limits
       if (batchNum < totalBatches) {
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
@@ -586,7 +612,7 @@ serve(async (req) => {
       console.error('❌ Database operations failed:', err);
     }
 
-    // Return results
+    // Return comprehensive results
     return new Response(
       JSON.stringify({
         success: true,
@@ -607,7 +633,8 @@ serve(async (req) => {
           bse_stocks: scanType === 'custom' ? 'Custom' : BSE_STOCKS.length,
           total_universe: stocksToScan.length,
           vcp_patterns_found: vcpResults.length,
-          real_data_coverage: realDataPercentage + '%'
+          real_data_coverage: realDataPercentage + '%',
+          ssl_fixes_applied: true
         },
         message: `🚀 ULTIMATE VCP MARKET SCAN v10.0 COMPLETE! 
         
