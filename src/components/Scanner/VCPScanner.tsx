@@ -8,7 +8,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { VCPResultsTable } from './VCPResultsTable';
 import { VCPScanStats } from './VCPScanStats';
 import { toast } from 'sonner';
-import { STOCK_UNIVERSE } from '@/constants/stockUniverse';
 
 interface VCPScanResult {
   id: string;
@@ -35,6 +34,28 @@ interface ScanMetadata {
   scan_duration_seconds: number | null;
   status: string | null;
   created_at: string;
+}
+
+interface ScanResponse {
+  success: boolean;
+  scan_date: string;
+  results_count: number;
+  total_scanned: number;
+  successful_scans: number;
+  real_data_fetches: number;
+  scan_duration_seconds: number;
+  processing_rate: number;
+  success_rate: string;
+  real_data_percentage: string;
+  api_errors: number;
+  scan_summary: {
+    nse_stocks: number;
+    bse_stocks: number;
+    total_universe: number;
+    vcp_patterns_found: number;
+    real_data_coverage: string;
+  };
+  message: string;
 }
 
 // Get last trading day for display
@@ -67,47 +88,67 @@ export function VCPScanner() {
   const [isScanning, setIsScanning] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch latest scan results
-  const { data: scanResults, isLoading: loadingResults } = useQuery({
+  // Fetch latest scan results with auto-refresh
+  const { data: scanResults, isLoading: loadingResults, refetch: refetchResults } = useQuery({
     queryKey: ['vcp-scan-results'],
     queryFn: async () => {
+      console.log('🔄 Fetching latest VCP scan results...');
       const { data, error } = await supabase
         .from('vcp_scan_results')
         .select('*')
         .order('scan_date', { ascending: false })
-        .limit(2000); // Increased limit for complete market results
+        .limit(3000); // Increased limit for complete results
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching scan results:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Fetched ${data?.length || 0} VCP scan results`);
       return data as VCPScanResult[];
     },
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
-  // Fetch scan metadata with updated scan type
-  const { data: scanMetadata } = useQuery({
+  // Fetch scan metadata with auto-refresh
+  const { data: scanMetadata, refetch: refetchMetadata } = useQuery({
     queryKey: ['scan-metadata'],
     queryFn: async () => {
+      console.log('🔄 Fetching scan metadata...');
       const { data, error } = await supabase
         .from('scan_metadata')
         .select('*')
         .eq('scan_type', 'VCP_COMPREHENSIVE_MARKET_SCAN')
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      if (error && error.code !== 'PGRST116') throw error;
-      return data as ScanMetadata | null;
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ Error fetching metadata:', error);
+        throw error;
+      }
+      
+      const result = data?.[0] || null;
+      console.log('✅ Fetched scan metadata:', result);
+      return result as ScanMetadata | null;
     },
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
-  // Enhanced Full Market VCP Scanner mutation
+  // Enhanced VCP Scanner mutation with proper UI updates
   const runScannerMutation = useMutation({
     mutationFn: async () => {
+      console.log('🚀 Starting Enhanced VCP Market Scanner...');
       const { data, error } = await supabase.functions.invoke('run-vcp-scanner', {
         body: {}
       });
       
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('❌ Scanner function error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Scanner completed successfully:', data);
+      return data as ScanResponse;
     },
     onSuccess: (data) => {
       const successMessage = `🚀 ULTIMATE VCP MARKET SCAN COMPLETE! 
@@ -116,31 +157,43 @@ export function VCPScanner() {
 📈 NSE: ${data.scan_summary?.nse_stocks?.toLocaleString()} | BSE: ${data.scan_summary?.bse_stocks?.toLocaleString()} stocks  
 🎯 VCP PATTERNS FOUND: ${data.results_count} high-quality stocks
 ⚡ SUCCESS RATE: ${data.success_rate}
-📡 REAL DATA: ${data.scan_summary?.real_data_percentage} from live APIs
+📡 REAL DATA: ${data.real_data_percentage} from live APIs
 📅 SCAN DATE: ${data.scan_date}
 ⏱️ DURATION: ${Math.floor(data.scan_duration_seconds/60)}m ${data.scan_duration_seconds%60}s
 🔥 PROCESSING RATE: ${data.processing_rate} stocks/minute
 
-Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
+Enhanced Mark Minervini VCP Algorithm v7.0 with 12 quality filters applied!`;
 
-      toast.success(successMessage, { duration: 10000 });
+      toast.success(successMessage, { duration: 12000 });
+      
+      // Force refresh of both results and metadata
+      console.log('🔄 Refreshing scan results and metadata...');
+      refetchResults();
+      refetchMetadata();
       queryClient.invalidateQueries({ queryKey: ['vcp-scan-results'] });
       queryClient.invalidateQueries({ queryKey: ['scan-metadata'] });
+      
       setIsScanning(false);
     },
     onError: (error) => {
-      console.error('Ultimate VCP Scanner error:', error);
-      toast.error('🚨 Ultimate VCP Scanner encountered an error. Please check API configuration and try again.', { duration: 6000 });
+      console.error('💥 Enhanced VCP Scanner error:', error);
+      toast.error(
+        `🚨 Ultimate VCP Scanner encountered an error: ${error.message}. Please check API configuration and try again.`, 
+        { duration: 8000 }
+      );
       setIsScanning(false);
     },
   });
 
   const handleRunFullScanner = async () => {
     setIsScanning(true);
+    console.log('🔥 Launching Ultimate VCP Market Scanner...');
+    
     toast.info('🔥 LAUNCHING ULTIMATE VCP MARKET SCANNER...', {
-      description: `Scanning ALL ${STOCK_UNIVERSE.TOTAL_UNIVERSE.toLocaleString()}+ NSE & BSE stocks with enhanced VCP detection. This comprehensive scan will process the complete Indian equity market universe with Mark Minervini's algorithmic methodology.`,
-      duration: 6000
+      description: `Scanning ALL 6,800+ NSE & BSE stocks with enhanced real-time data integration. This comprehensive scan will process the complete Indian equity market universe with Mark Minervini's enhanced 12-point VCP methodology using live API data.`,
+      duration: 8000
     });
+    
     runScannerMutation.mutate();
   };
 
@@ -149,6 +202,8 @@ Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
       toast.error('No VCP results available for export');
       return;
     }
+
+    console.log(`📥 Exporting ${scanResults.length} VCP results to CSV...`);
 
     const csvHeaders = [
       'Symbol',
@@ -194,7 +249,8 @@ Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
     a.click();
     window.URL.revokeObjectURL(url);
     
-    toast.success(`📥 Full Market VCP Results exported! ${scanResults.length} stocks included.`);
+    toast.success(`📥 Complete Market VCP Results exported! ${scanResults.length} stocks included.`);
+    console.log(`✅ Export completed: ${scanResults.length} results`);
   };
 
   const lastTradingDay = getLastTradingDay();
@@ -214,22 +270,22 @@ Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white text-2xl">
             <Globe className="w-6 h-6 text-green-400" />
-            Ultimate VCP Market Scanner v6.0
+            Ultimate VCP Market Scanner v7.0
             <span className="text-sm bg-green-500/20 text-green-400 px-3 py-1 rounded-full border border-green-500/30">
-              Complete Universe + Enhanced Detection
+              Real-Time Data + Complete Universe
             </span>
           </CardTitle>
           <p className="text-slate-400">
-            Professional-grade Volatility Contraction Pattern scanner with <strong>COMPLETE market coverage</strong> across entire NSE & BSE universe using Mark Minervini's enhanced algorithmic methodology with 12 quality filters
+            Professional-grade Volatility Contraction Pattern scanner with <strong>REAL-TIME API integration</strong> and complete NSE & BSE coverage using Mark Minervini's enhanced 12-point algorithmic methodology
           </p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 text-sm">
             <div className="flex items-center gap-2 text-green-400">
               <Database className="w-4 h-4" />
-              <span>NSE: {STOCK_UNIVERSE.NSE_COUNT.toLocaleString()}+ stocks</span>
+              <span>NSE: 1,800+ stocks</span>
             </div>
             <div className="flex items-center gap-2 text-blue-400">
               <Database className="w-4 h-4" />
-              <span>BSE: {STOCK_UNIVERSE.BSE_COUNT.toLocaleString()}+ stocks</span>
+              <span>BSE: 5,000+ stocks</span>
             </div>
             <div className="flex items-center gap-2 text-purple-400">
               <Clock className="w-4 h-4" />
@@ -237,7 +293,7 @@ Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
             </div>
             <div className="flex items-center gap-2 text-orange-400">
               <Settings className="w-4 h-4" />
-              <span>Multi-API Integration</span>
+              <span>Live API Integration</span>
             </div>
           </div>
         </CardHeader>
@@ -258,13 +314,13 @@ Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
                     <div className="flex items-center gap-2">
                       <BarChart3 className="w-4 h-4 text-green-400" />
                       <span className="text-sm">
-                        VCP Results: <strong>{scanMetadata.filtered_results_count?.toLocaleString()}</strong>
+                        VCP Results: <strong>{scanMetadata.filtered_results_count?.toLocaleString() || 0}</strong>
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Globe className="w-4 h-4 text-purple-400" />
                       <span className="text-sm">
-                        Total Processed: <strong>{scanMetadata.total_stocks_scanned?.toLocaleString()}</strong> stocks
+                        Total Processed: <strong>{scanMetadata.total_stocks_scanned?.toLocaleString() || 0}</strong> stocks
                       </span>
                     </div>
                   </>
@@ -273,9 +329,10 @@ Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
               
               <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                 <p className="text-blue-300 text-xs">
-                  <strong>ULTIMATE MARKET COVERAGE:</strong> This scanner processes the <em>complete universe</em> of NSE & BSE listed stocks 
-                  with enhanced Mark Minervini VCP detection algorithm featuring 12 quality filters including volatility contraction, 
-                  cup formation analysis, trend structure validation, and breakout signal detection.
+                  <strong>REAL-TIME MARKET COVERAGE:</strong> This scanner processes 6,800+ NSE & BSE stocks 
+                  with live data from Alpha Vantage, Twelve Data, and Yahoo Finance APIs. Enhanced Mark Minervini 
+                  VCP detection with 12 quality filters including volatility contraction, cup analysis, trend validation, 
+                  and breakout signals.
                 </p>
               </div>
             </div>
@@ -289,7 +346,7 @@ Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
                 {isScanning ? (
                   <>
                     <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                    Scanning Complete Market...
+                    Scanning 6,800+ Stocks...
                   </>
                 ) : (
                   <>
@@ -318,7 +375,7 @@ Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
         <CardHeader>
           <CardTitle className="text-white text-lg flex items-center gap-2">
             <Zap className="w-5 h-5 text-yellow-400" />
-            Enhanced Mark Minervini VCP Algorithm v6.0 (Applied to Complete Market)
+            Enhanced Mark Minervini VCP Algorithm v7.0 (Real-Time Data Integration)
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-slate-300 space-y-3">
@@ -331,7 +388,7 @@ Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
                 <li>• Price within 25% of 52-week high</li>
                 <li>• Volume contraction pattern validation</li>
                 <li>• Price consolidation range (5-20%)</li>
-                <li>• Cup formation depth analysis (15-65%)</li>
+                <li>• Cup formation depth analysis (12-65%)</li>
               </ul>
             </div>
             <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded">
@@ -339,18 +396,18 @@ Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
               <ul className="mt-2 space-y-1 text-xs">
                 <li>• Minimum price: ₹50 (quality threshold)</li>
                 <li>• Daily turnover: ₹50L+ (liquidity requirement)</li>
-                <li>• Stage 2 uptrend: 10% above 200 SMA</li>
-                <li>• Relative strength: 20% gain over 200 days</li>
-                <li>• Price action quality (max 15% range in 5 days)</li>
+                <li>• Stage 2 uptrend: 8% above 200 SMA</li>
+                <li>• Relative strength: 15% gain over 200 days</li>
+                <li>• Price action quality (max 12% range in 5 days)</li>
                 <li>• 🎯 Breakout: Volume spike with price breakout</li>
               </ul>
             </div>
           </div>
           <div className="mt-4 p-4 bg-purple-500/10 border border-purple-500/20 rounded">
             <p className="text-purple-300 text-sm">
-              <strong>🚀 ENHANCED v6.0 FEATURES:</strong> Complete NSE & BSE coverage ({STOCK_UNIVERSE.TOTAL_UNIVERSE.toLocaleString()}+ stocks), 
-              Multi-API integration (Alpha Vantage, Yahoo Finance, Twelve Data, Zerodha), 12-point quality filter system, 
-              cup formation analysis, relative strength validation, and professional-grade accuracy for serious traders.
+              <strong>🚀 REAL-TIME v7.0 FEATURES:</strong> Complete NSE (1,800+) & BSE (5,000+) coverage with 
+              live API integration (Alpha Vantage, Twelve Data, Yahoo Finance), 12-point quality filter system, 
+              enhanced cup formation analysis, and professional-grade accuracy for serious traders.
             </p>
           </div>
         </CardContent>
@@ -364,7 +421,7 @@ Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
             <TrendingUp className="w-5 h-5 text-green-400" />
-            Full Market VCP Scanner Results
+            Complete Market VCP Scanner Results
             {scanResults && scanResults.length > 0 && (
               <span className="text-sm text-slate-400 ml-2">
                 ({scanResults.length.toLocaleString()} VCP patterns from complete market scan)
@@ -372,7 +429,7 @@ Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
             )}
           </CardTitle>
           <p className="text-slate-400 text-sm">
-            Displaying all stocks that passed Mark Minervini's strict VCP criteria from the last full market scan
+            Real-time results showing all stocks that passed Mark Minervini's strict 12-point VCP criteria from the latest comprehensive market scan
           </p>
         </CardHeader>
         <CardContent>
