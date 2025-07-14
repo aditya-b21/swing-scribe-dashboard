@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Zap, Download, RefreshCw, Calendar, TrendingUp, BarChart3, Clock, Database, Globe, Settings, Shield } from 'lucide-react';
+import { Zap, Download, RefreshCw, Calendar, TrendingUp, BarChart3, Clock, Database, Globe, Settings, Shield, AlertTriangle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { VCPResultsTable } from './VCPResultsTable';
@@ -48,35 +48,38 @@ interface ScanResponse {
   success_rate: string;
   real_data_percentage: string;
   api_errors: number;
+  ssl_errors: number;
   scan_summary: {
     nse_stocks: number;
     bse_stocks: number;
     total_universe: number;
     vcp_patterns_found: number;
     real_data_coverage: string;
+    ssl_fixes_applied: boolean;
   };
   message: string;
 }
 
-// Get last trading day for display
-function getLastTradingDay(): string {
+// Get current trading day
+function getCurrentTradingDay(): string {
   const today = new Date();
-  let lastTradingDay = new Date(today);
+  let tradingDay = new Date(today);
   
+  // Handle weekends for Indian markets
   if (today.getDay() === 6) { // Saturday
-    lastTradingDay.setDate(today.getDate() - 1);
+    tradingDay.setDate(today.getDate() - 1);
   } else if (today.getDay() === 0) { // Sunday
-    lastTradingDay.setDate(today.getDate() - 2);
-  } else if (today.getHours() < 16) { // Before 4 PM
-    lastTradingDay.setDate(today.getDate() - 1);
-    if (lastTradingDay.getDay() === 0) {
-      lastTradingDay.setDate(lastTradingDay.getDate() - 2);
-    } else if (lastTradingDay.getDay() === 6) {
-      lastTradingDay.setDate(lastTradingDay.getDate() - 1);
+    tradingDay.setDate(today.getDate() - 2);
+  } else if (today.getHours() < 9) { // Before market opens
+    tradingDay.setDate(today.getDate() - 1);
+    if (tradingDay.getDay() === 0) {
+      tradingDay.setDate(tradingDay.getDate() - 2);
+    } else if (tradingDay.getDay() === 6) {
+      tradingDay.setDate(tradingDay.getDate() - 1);
     }
   }
   
-  return lastTradingDay.toLocaleDateString('en-IN', {
+  return tradingDay.toLocaleDateString('en-IN', {
     weekday: 'short',
     year: 'numeric',
     month: 'short',
@@ -97,7 +100,7 @@ export function VCPScanner() {
         .from('vcp_scan_results')
         .select('*')
         .order('scan_date', { ascending: false })
-        .limit(5000); // Increased for comprehensive results
+        .limit(1000);
 
       if (error) {
         console.error('❌ Error fetching scan results:', error);
@@ -107,8 +110,8 @@ export function VCPScanner() {
       console.log(`✅ Fetched ${data?.length || 0} VCP scan results`);
       return data as VCPScanResult[];
     },
-    refetchInterval: 15000, // More frequent refresh
-    staleTime: 10000, // Consider data stale after 10 seconds
+    refetchInterval: 10000,
+    staleTime: 5000,
   });
 
   // Fetch scan metadata with enhanced refresh
@@ -132,14 +135,14 @@ export function VCPScanner() {
       console.log('✅ Fetched scan metadata:', result);
       return result as ScanMetadata | null;
     },
-    refetchInterval: 15000, // More frequent refresh
-    staleTime: 10000,
+    refetchInterval: 10000,
+    staleTime: 5000,
   });
 
-  // Enhanced VCP Scanner mutation with better error handling
+  // Enhanced VCP Scanner mutation with SSL fix handling
   const runScannerMutation = useMutation({
     mutationFn: async () => {
-      console.log('🚀 Starting Ultimate VCP Market Scanner v8.0...');
+      console.log('🚀 Starting Ultimate VCP Market Scanner v9.0 with SSL fixes...');
       const { data, error } = await supabase.functions.invoke('run-vcp-scanner', {
         body: {}
       });
@@ -153,49 +156,55 @@ export function VCPScanner() {
       return data as ScanResponse;
     },
     onSuccess: (data) => {
-      const successMessage = `🚀 ULTIMATE VCP MARKET SCAN v8.0 COMPLETE! 
+      const successMessage = `🚀 ULTIMATE VCP MARKET SCAN v9.0 COMPLETE! 
       
 📊 PROCESSED: ${data.total_scanned?.toLocaleString()} stocks from COMPLETE NSE + BSE universe
 📈 NSE: ${data.scan_summary?.nse_stocks?.toLocaleString()} | BSE: ${data.scan_summary?.bse_stocks?.toLocaleString()} stocks  
 🎯 VCP PATTERNS FOUND: ${data.results_count} high-quality stocks
 ⚡ SUCCESS RATE: ${data.success_rate}
 📡 REAL DATA: ${data.real_data_percentage} from live APIs
-🔧 SSL ISSUES FIXED: Enhanced error handling applied
+🔒 SSL FIXES: Enhanced handshake handling applied
 📅 SCAN DATE: ${data.scan_date}
 ⏱️ DURATION: ${Math.floor(data.scan_duration_seconds/60)}m ${data.scan_duration_seconds%60}s
 🔥 PROCESSING RATE: ${data.processing_rate} stocks/minute
 
-Enhanced Mark Minervini VCP Algorithm v8.0 with SSL fixes and 12 quality filters!`;
+Enhanced Mark Minervini VCP Algorithm v9.0 with SSL fixes and 12 quality filters!`;
 
       toast.success(successMessage, { duration: 15000 });
       
-      // Force immediate refresh of both results and metadata
-      console.log('🔄 Force refreshing all data...');
+      // Force immediate refresh of all data
+      console.log('🔄 Force refreshing all data after successful scan...');
       setTimeout(() => {
         refetchResults();
         refetchMetadata();
         queryClient.invalidateQueries({ queryKey: ['vcp-scan-results'] });
         queryClient.invalidateQueries({ queryKey: ['scan-metadata'] });
-      }, 2000); // Small delay to ensure backend processing is complete
+      }, 2000);
       
       setIsScanning(false);
     },
     onError: (error) => {
       console.error('💥 Ultimate VCP Scanner error:', error);
-      toast.error(
-        `🚨 Ultimate VCP Scanner v8.0 encountered an error: ${error.message}. SSL handshake issues have been addressed with enhanced error handling.`, 
-        { duration: 10000 }
-      );
+      
+      let errorMessage = `🚨 Ultimate VCP Scanner v9.0 encountered an error: ${error.message}`;
+      
+      if (error.message.includes('SSL') || error.message.includes('handshake')) {
+        errorMessage += '\n\n🔒 SSL Error: Enhanced SSL handshake handling has been applied. This may be a temporary network issue.';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage += '\n\n📡 Network Error: Please check your internet connection and try again.';
+      }
+      
+      toast.error(errorMessage, { duration: 12000 });
       setIsScanning(false);
     },
   });
 
   const handleRunFullScanner = async () => {
     setIsScanning(true);
-    console.log('🔥 Launching Ultimate VCP Market Scanner v8.0...');
+    console.log('🔥 Launching Ultimate VCP Market Scanner v9.0 with SSL fixes...');
     
-    toast.info('🔥 LAUNCHING ULTIMATE VCP MARKET SCANNER v8.0...', {
-      description: `Scanning ALL 4,800+ NSE & BSE stocks with enhanced SSL fixes and real-time data integration. This comprehensive scan processes the complete Indian equity market with Mark Minervini's enhanced 12-point VCP methodology using live API data with improved error handling.`,
+    toast.info('🔥 LAUNCHING ULTIMATE VCP MARKET SCANNER v9.0...', {
+      description: `Scanning ALL NSE & BSE stocks with enhanced SSL fixes and real-time data integration. This comprehensive scan processes the complete Indian equity market with Mark Minervini's enhanced 12-point VCP methodology using live API data with improved SSL handshake handling.`,
       duration: 10000
     });
     
@@ -250,15 +259,15 @@ Enhanced Mark Minervini VCP Algorithm v8.0 with SSL fixes and 12 quality filters
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ultimate_vcp_scan_v8_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `ultimate_vcp_scan_v9_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
     
-    toast.success(`📥 Ultimate VCP Results v8.0 exported! ${scanResults.length} stocks included.`);
+    toast.success(`📥 Ultimate VCP Results v9.0 exported! ${scanResults.length} stocks included.`);
     console.log(`✅ Export completed: ${scanResults.length} results`);
   };
 
-  const lastTradingDay = getLastTradingDay();
+  const currentTradingDay = getCurrentTradingDay();
   const latestScanDate = scanMetadata?.scan_date 
     ? new Date(scanMetadata.scan_date).toLocaleDateString('en-IN', {
         weekday: 'short',
@@ -270,19 +279,19 @@ Enhanced Mark Minervini VCP Algorithm v8.0 with SSL fixes and 12 quality filters
 
   return (
     <div className="space-y-6">
-      {/* Enhanced Header Card with SSL Fix Indicator */}
+      {/* Enhanced Header Card with SSL Fix Status */}
       <Card className="glass-effect border-l-4 border-l-green-500">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white text-2xl">
             <Globe className="w-6 h-6 text-green-400" />
-            Ultimate VCP Market Scanner v8.0
+            Ultimate VCP Market Scanner v9.0
             <span className="text-sm bg-green-500/20 text-green-400 px-3 py-1 rounded-full border border-green-500/30 flex items-center gap-1">
               <Shield className="w-3 h-3" />
               SSL Fixed + Real-Time Data
             </span>
           </CardTitle>
           <p className="text-slate-400">
-            Professional-grade Volatility Contraction Pattern scanner with <strong>SSL FIXES</strong>, <strong>REAL-TIME API integration</strong>, and complete NSE & BSE coverage using Mark Minervini's enhanced 12-point algorithmic methodology
+            Professional-grade Volatility Contraction Pattern scanner with <strong>ENHANCED SSL FIXES</strong>, <strong>REAL-TIME API integration</strong>, and complete NSE & BSE coverage using Mark Minervini's enhanced 12-point algorithmic methodology
           </p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 text-sm">
             <div className="flex items-center gap-2 text-green-400">
@@ -295,17 +304,17 @@ Enhanced Mark Minervini VCP Algorithm v8.0 with SSL fixes and 12 quality filters
             </div>
             <div className="flex items-center gap-2 text-purple-400">
               <Clock className="w-4 h-4" />
-              <span>Last Trading Day: {lastTradingDay}</span>
+              <span>Trading Day: {currentTradingDay}</span>
             </div>
             <div className="flex items-center gap-2 text-orange-400">
               <Shield className="w-4 h-4" />
-              <span>SSL Issues Fixed</span>
+              <span>SSL Enhanced</span>
             </div>
           </div>
         </CardHeader>
       </Card>
 
-      {/* Enhanced Control Panel */}
+      {/* Enhanced Control Panel with SSL Status */}
       <Card className="glass-effect">
         <CardContent className="p-6">
           <div className="flex flex-col lg:flex-row gap-6 items-start justify-between">
@@ -335,10 +344,10 @@ Enhanced Mark Minervini VCP Algorithm v8.0 with SSL fixes and 12 quality filters
               
               <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                 <p className="text-green-300 text-xs">
-                  <strong>🔧 SSL FIXES APPLIED:</strong> This scanner now includes enhanced SSL handshake error handling, 
-                  retry logic, and improved API integration for reliable data fetching from Alpha Vantage, Twelve Data, and Yahoo Finance. 
-                  Enhanced Mark Minervini VCP detection with 12 quality filters including volatility contraction, 
-                  cup analysis, trend validation, and breakout signals across 4,800+ NSE & BSE stocks.
+                  <strong>🔒 SSL FIXES v9.0 APPLIED:</strong> This scanner now includes enhanced SSL handshake error handling, 
+                  multiple retry strategies, and improved API integration for reliable data fetching from Yahoo Finance (primary), 
+                  Alpha Vantage, and Twelve Data. Enhanced Mark Minervini VCP detection with 12 quality filters including 
+                  volatility contraction, cup analysis, trend validation, and breakout signals across 4,800+ NSE & BSE stocks.
                 </p>
               </div>
             </div>
@@ -357,7 +366,7 @@ Enhanced Mark Minervini VCP Algorithm v8.0 with SSL fixes and 12 quality filters
                 ) : (
                   <>
                     <Globe className="w-5 h-5 mr-2" />
-                    Run Ultimate Scanner v8.0
+                    Run Ultimate Scanner v9.0
                   </>
                 )}
               </Button>
@@ -376,12 +385,12 @@ Enhanced Mark Minervini VCP Algorithm v8.0 with SSL fixes and 12 quality filters
         </CardContent>
       </Card>
 
-      {/* Enhanced VCP Algorithm Info with SSL Fixes */}
+      {/* Enhanced VCP Algorithm Info with SSL v9.0 */}
       <Card className="glass-effect">
         <CardHeader>
           <CardTitle className="text-white text-lg flex items-center gap-2">
             <Zap className="w-5 h-5 text-yellow-400" />
-            Enhanced Mark Minervini VCP Algorithm v8.0 (SSL Fixed + Real-Time Integration)
+            Enhanced Mark Minervini VCP Algorithm v9.0 (SSL Enhanced + Real-Time Integration)
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-slate-300 space-y-3">
@@ -411,9 +420,10 @@ Enhanced Mark Minervini VCP Algorithm v8.0 with SSL fixes and 12 quality filters
           </div>
           <div className="mt-4 p-4 bg-purple-500/10 border border-purple-500/20 rounded">
             <p className="text-purple-300 text-sm">
-              <strong>🚀 v8.0 SSL FIXES & FEATURES:</strong> Complete NSE (1,800+) & BSE (3,000+) coverage with 
-              enhanced SSL handshake error handling, retry logic, and live API integration (Alpha Vantage, Twelve Data, Yahoo Finance). 
-              12-point quality filter system with professional-grade accuracy and improved reliability for serious traders.
+              <strong>🚀 v9.0 SSL ENHANCEMENTS:</strong> Complete NSE (1,800+) & BSE (3,000+) coverage with 
+              enhanced SSL handshake error handling, multiple retry strategies, and live API integration prioritizing 
+              Yahoo Finance for reliability. 12-point quality filter system with professional-grade accuracy and 
+              improved SSL stability for serious traders.
             </p>
           </div>
         </CardContent>
@@ -427,7 +437,7 @@ Enhanced Mark Minervini VCP Algorithm v8.0 with SSL fixes and 12 quality filters
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
             <TrendingUp className="w-5 h-5 text-green-400" />
-            Ultimate VCP Scanner v8.0 Results
+            Ultimate VCP Scanner v9.0 Results
             {scanResults && scanResults.length > 0 && (
               <span className="text-sm text-slate-400 ml-2">
                 ({scanResults.length.toLocaleString()} VCP patterns from comprehensive market scan)
@@ -435,7 +445,7 @@ Enhanced Mark Minervini VCP Algorithm v8.0 with SSL fixes and 12 quality filters
             )}
           </CardTitle>
           <p className="text-slate-400 text-sm">
-            Real-time results with SSL fixes showing all stocks that passed Mark Minervini's strict 12-point VCP criteria from the latest comprehensive market scan
+            Real-time results with SSL v9.0 fixes showing all stocks that passed Mark Minervini's strict 12-point VCP criteria from the latest comprehensive market scan
           </p>
         </CardHeader>
         <CardContent>
