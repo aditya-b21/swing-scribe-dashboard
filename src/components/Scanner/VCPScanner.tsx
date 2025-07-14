@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { VCPResultsTable } from './VCPResultsTable';
 import { VCPScanStats } from './VCPScanStats';
 import { toast } from 'sonner';
+import { STOCK_UNIVERSE } from '@/constants/stockUniverse';
 
 interface VCPScanResult {
   id: string;
@@ -136,7 +137,7 @@ Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
   const handleRunFullScanner = async () => {
     setIsScanning(true);
     toast.info('🔥 LAUNCHING ULTIMATE VCP MARKET SCANNER...', {
-      description: `Scanning ALL ${(NSE_STOCKS.length + BSE_STOCKS.length).toLocaleString()}+ NSE & BSE stocks with enhanced VCP detection. This comprehensive scan will process the complete Indian equity market universe with Mark Minervini's algorithmic methodology.`,
+      description: `Scanning ALL ${STOCK_UNIVERSE.TOTAL_UNIVERSE.toLocaleString()}+ NSE & BSE stocks with enhanced VCP detection. This comprehensive scan will process the complete Indian equity market universe with Mark Minervini's algorithmic methodology.`,
       duration: 6000
     });
     runScannerMutation.mutate();
@@ -223,11 +224,11 @@ Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 text-sm">
             <div className="flex items-center gap-2 text-green-400">
               <Database className="w-4 h-4" />
-              <span>NSE: {NSE_STOCKS.length.toLocaleString()}+ stocks</span>
+              <span>NSE: {STOCK_UNIVERSE.NSE_COUNT.toLocaleString()}+ stocks</span>
             </div>
             <div className="flex items-center gap-2 text-blue-400">
               <Database className="w-4 h-4" />
-              <span>BSE: {BSE_STOCKS.length.toLocaleString()}+ stocks</span>
+              <span>BSE: {STOCK_UNIVERSE.BSE_COUNT.toLocaleString()}+ stocks</span>
             </div>
             <div className="flex items-center gap-2 text-purple-400">
               <Clock className="w-4 h-4" />
@@ -346,7 +347,7 @@ Enhanced Mark Minervini VCP Algorithm v6.0 with 12 quality filters applied!`;
           </div>
           <div className="mt-4 p-4 bg-purple-500/10 border border-purple-500/20 rounded">
             <p className="text-purple-300 text-sm">
-              <strong>🚀 ENHANCED v6.0 FEATURES:</strong> Complete NSE & BSE coverage ({(NSE_STOCKS.length + BSE_STOCKS.length).toLocaleString()}+ stocks), 
+              <strong>🚀 ENHANCED v6.0 FEATURES:</strong> Complete NSE & BSE coverage ({STOCK_UNIVERSE.TOTAL_UNIVERSE.toLocaleString()}+ stocks), 
               Multi-API integration (Alpha Vantage, Yahoo Finance, Twelve Data, Zerodha), 12-point quality filter system, 
               cup formation analysis, relative strength validation, and professional-grade accuracy for serious traders.
             </p>
